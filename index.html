@@ -708,6 +708,7 @@
         StateRatioCh2FrequencyDivisionIndex: 0,
         StateRatioLimit: "4",
         StateRatioSweepIndex: 0,
+        StateRatioSweepTag: "Frequency",
         EpsilonLow: "",
         EpsilonHigh: "",
         EpsilonStep: "",
@@ -1262,7 +1263,10 @@
     }
 
     function renderStateRatioInputs(p) {
-      const sweepEpsilon = Number(p.StateRatioSweepIndex || 0) === 0;
+      const sweepIndex = Number(p.StateRatioSweepIndex || 0);
+      const sweepFrequency = sweepIndex === 0;
+      const sweepEpsilon = sweepIndex === 1;
+      const sweepDelta = sweepIndex === 2;
       const field = (id, label, enabled) => `<div class="${enabled ? "" : "fieldOff"}">
         <label>${label}</label>
         <input id="${id}" inputmode="decimal" value="${esc(p[id])}" ${enabled ? "" : "disabled"}>
@@ -1270,12 +1274,12 @@
       const frequencyField = (prefix, label) => `<div class="full">
         <div style="font-weight:700;margin:4px 0 6px">${label} Frequency Hz</div>
         <div class="smallGrid">
-          <div><label>Low</label><input id="${prefix}FrequencyLow" inputmode="decimal" value="${esc(p[`${prefix}FrequencyLow`])}"></div>
-          <div><label>High</label><input id="${prefix}FrequencyHigh" inputmode="decimal" value="${esc(p[`${prefix}FrequencyHigh`])}"></div>
-          <div><label>Step/points</label><input id="${prefix}FrequencyStep" inputmode="decimal" value="${esc(p[`${prefix}FrequencyStep`])}"></div>
-          <div><label>Fixed</label><input id="${prefix}FixedFrequency" inputmode="decimal" value="${esc(p[`${prefix}FixedFrequency`] || p.StateRatioFrequency)}"></div>
+          <div class="${sweepFrequency ? "" : "fieldOff"}"><label>Low</label><input id="${prefix}FrequencyLow" inputmode="decimal" value="${esc(p[`${prefix}FrequencyLow`])}" ${sweepFrequency ? "" : "disabled"}></div>
+          <div class="${sweepFrequency ? "" : "fieldOff"}"><label>High</label><input id="${prefix}FrequencyHigh" inputmode="decimal" value="${esc(p[`${prefix}FrequencyHigh`])}" ${sweepFrequency ? "" : "disabled"}></div>
+          <div class="${sweepFrequency ? "" : "fieldOff"}"><label>Step/points</label><input id="${prefix}FrequencyStep" inputmode="decimal" value="${esc(p[`${prefix}FrequencyStep`])}" ${sweepFrequency ? "" : "disabled"}></div>
+          <div class="${sweepFrequency ? "fieldOff" : ""}"><label>Fixed</label><input id="${prefix}FixedFrequency" inputmode="decimal" value="${esc(p[`${prefix}FixedFrequency`] || p.StateRatioFrequency)}" ${sweepFrequency ? "disabled" : ""}></div>
         </div>
-        <select id="${prefix}FrequencyDivisionIndex" style="max-width:180px;margin-top:8px">
+        <select id="${prefix}FrequencyDivisionIndex" style="max-width:180px;margin-top:8px" ${sweepFrequency ? "" : "disabled"}>
           <option value="0" ${selected(p[`${prefix}FrequencyDivisionIndex`],0)}>Divide by step</option>
           <option value="1" ${selected(p[`${prefix}FrequencyDivisionIndex`],1)}>Divide by points</option>
         </select>
@@ -1285,8 +1289,9 @@
         <div>
           <label>Sweep</label>
           <select id="StateRatioSweepIndex">
-            <option value="0" ${selected(p.StateRatioSweepIndex,0)}>Sweep ε</option>
-            <option value="1" ${selected(p.StateRatioSweepIndex,1)}>Sweep δ₀</option>
+            <option value="0" ${selected(p.StateRatioSweepIndex,0)}>Sweep Frequency</option>
+            <option value="1" ${selected(p.StateRatioSweepIndex,1)}>Sweep ε</option>
+            <option value="2" ${selected(p.StateRatioSweepIndex,2)}>Sweep δ₀</option>
           </select>
         </div>
         ${frequencyField("StateRatioCh1", "CH1")}
@@ -1300,7 +1305,7 @@
         </div>
         <div>
           <label>δ₀ divide</label>
-          <select id="DeltaDivisionIndex" ${sweepEpsilon ? "disabled" : ""}>
+          <select id="DeltaDivisionIndex" ${sweepDelta ? "" : "disabled"}>
             <option value="0" ${selected(p.DeltaDivisionIndex,0)}>Divide by step</option>
             <option value="1" ${selected(p.DeltaDivisionIndex,1)}>Divide by points</option>
           </select>
@@ -1309,10 +1314,10 @@
         ${field("EpsilonHigh", "ε high", sweepEpsilon)}
         ${field("EpsilonStep", "ε step/points", sweepEpsilon)}
         ${field("FixedEpsilon", "Fixed ε", !sweepEpsilon)}
-        ${field("DeltaLow", "δ₀ low", !sweepEpsilon)}
-        ${field("DeltaHigh", "δ₀ high", !sweepEpsilon)}
-        ${field("DeltaStep", "δ₀ step/points", !sweepEpsilon)}
-        ${field("FixedDelta", "Fixed δ₀", sweepEpsilon)}
+        ${field("DeltaLow", "δ₀ low", sweepDelta)}
+        ${field("DeltaHigh", "δ₀ high", sweepDelta)}
+        ${field("DeltaStep", "δ₀ step/points", sweepDelta)}
+        ${field("FixedDelta", "Fixed δ₀", !sweepDelta)}
       </div></section>`;
     }
 
@@ -1398,7 +1403,10 @@
       }
       if (document.getElementById("StateRatioCh1FrequencyDivisionIndex")) p.StateRatioCh1FrequencyDivisionIndex = Number(value("StateRatioCh1FrequencyDivisionIndex") || 0);
       if (document.getElementById("StateRatioCh2FrequencyDivisionIndex")) p.StateRatioCh2FrequencyDivisionIndex = Number(value("StateRatioCh2FrequencyDivisionIndex") || 0);
-      if (document.getElementById("StateRatioSweepIndex")) p.StateRatioSweepIndex = Number(value("StateRatioSweepIndex") || 0);
+      if (document.getElementById("StateRatioSweepIndex")) {
+        p.StateRatioSweepIndex = Number(value("StateRatioSweepIndex") || 0);
+        p.StateRatioSweepTag = ["Frequency", "Epsilon", "Delta0"][p.StateRatioSweepIndex] || "Frequency";
+      }
       if (document.getElementById("EpsilonDivisionIndex")) p.EpsilonDivisionIndex = Number(value("EpsilonDivisionIndex") || 0);
       if (document.getElementById("DeltaDivisionIndex")) p.DeltaDivisionIndex = Number(value("DeltaDivisionIndex") || 0);
       if (document.getElementById("SkipCompletedScans")) p.SkipCompletedScans = bool("SkipCompletedScans");
