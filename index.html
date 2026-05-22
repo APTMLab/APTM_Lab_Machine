@@ -180,7 +180,9 @@
   <script>
     const settingsKey = "measurement-workflow-remote-settings";
     const tokenKey = "measurement-workflow-remote-token";
-    const defaultRelayUrl = "https://measurement-workflow-relay.hk2799.workers.dev";
+    const defaultRelayUrl = location.hostname.endsWith("github.io")
+      ? "https://measurement-workflow-relay.hk2799.workers.dev"
+      : location.origin;
     const defaultLabId = "aptm-lab";
     const state = {
       token: localStorage.getItem(tokenKey) || "",

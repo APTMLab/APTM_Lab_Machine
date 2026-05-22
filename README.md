@@ -36,6 +36,11 @@ Deploy it as a Cloudflare Worker with a KV namespace binding named:
 
 `MW_REMOTE_KV`
 
+If this repository is connected directly to Cloudflare Pages, the root `_worker.js`
+contains the same relay API and mobile page together. In that setup, add the
+same `MW_REMOTE_KV` binding and environment variables to the Cloudflare Pages
+project, not only to a separate Worker project.
+
 Required Worker environment variables:
 
 - `REMOTE_LAB_ID`: the Lab ID typed on the mobile login screen
