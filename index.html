@@ -140,6 +140,17 @@
       align-items:start;
     }
 
+    .homePanel {
+      max-width:980px;
+      margin:clamp(36px,12vh,130px) auto 0;
+    }
+
+    .homeChoices {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:16px;
+    }
+
     .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
     .triGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
     .smallGrid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
@@ -214,6 +225,14 @@
       gap:6px;
     }
 
+    .choice.big {
+      min-height:158px;
+      padding:22px;
+    }
+
+    .choice.big .choiceTitle { font-size:21px; }
+    .choice.big .choiceText { font-size:13px; }
+
     .choice.active {
       border-color:var(--teal);
       background:linear-gradient(180deg,#f0fdfa,#fff);
@@ -226,7 +245,7 @@
 
     .stepper {
       display:grid;
-      grid-template-columns:1fr 1fr;
+      grid-template-columns:repeat(3,1fr);
       gap:10px;
       margin:0 0 14px;
     }
@@ -424,6 +443,7 @@
       header { margin:-14px -10px 12px; padding:14px 10px 12px; }
       h1 { font-size:22px; }
       .grid, .triGrid, .smallGrid, .seg, .stepper, .compactList { grid-template-columns:1fr; }
+      .homeChoices { grid-template-columns:1fr; }
       .scopeCh { grid-template-columns:1fr 1fr; }
       .content { padding:12px; }
       .card { border-radius:14px; margin:11px 0; }
@@ -479,7 +499,7 @@
 
     const settingsKey = "measurement-workflow-remote-settings";
     const tokenKey = "measurement-workflow-remote-token";
-    const viewKey = "measurement-workflow-remote-view";
+    const viewKey = "measurement-workflow-remote-view-v2";
 
     const modes = ["Sweep frequency", "Sweep amplitude", "Sweep phase", "Fixed condition"];
     const waveforms = ["Sine", "Square", "Ramp", "Pulse", "Noise"];
@@ -491,7 +511,7 @@
       token: localStorage.getItem(tokenKey) || "",
       relayUrl: defaultRelayUrl,
       labId: defaultLabId,
-      view: localStorage.getItem(viewKey) || "setup",
+      view: "home",
       appState: null,
       preset: null,
       dirty: false,
@@ -711,6 +731,12 @@
     function render() {
       state.preset = normalizePreset(state.preset || defaultPreset());
       setPills();
+      if (state.view === "home") {
+        document.getElementById("app").innerHTML = renderHomePage();
+        wirePage();
+        return;
+      }
+
       document.getElementById("app").innerHTML = `
         ${renderStepper()}
         ${state.view === "setup" ? renderSetupPage(state.preset) : renderInputPage(state.preset)}
@@ -718,8 +744,30 @@
       wirePage();
     }
 
+    function renderHomePage() {
+      return `<section class="card homePanel">
+        <h2>Choose Scan Workflow</h2>
+        <div class="content">
+          <div class="homeChoices">
+            <button class="choice big" data-start-equipment="Oscilloscope">
+              <span class="choiceTitle">Oscilloscope</span>
+              <span class="choiceText">Tektronix acquisition with B&K 4055B function-generator sweep control.</span>
+            </button>
+            <button class="choice big" data-start-equipment="LaserDopplerVibrometer">
+              <span class="choiceTitle">Laser Doppler Vibrometer</span>
+              <span class="choiceText">PSV-680F QTec measurement workflow with external or PSV generator setup.</span>
+            </button>
+          </div>
+          <div class="muted" style="margin-top:14px">${esc(state.appState?.message || state.appState?.status || "Choose a workflow to open the matching scan controls on the desktop app.")}</div>
+        </div>
+      </section>`;
+    }
+
     function renderStepper() {
       return `<div class="stepper">
+        <button class="step" data-home>
+          <span><span class="dot"></span>Home</span><span></span>
+        </button>
         <button class="step ${state.view === "setup" ? "active" : ""}" data-view="setup">
           <span><span class="dot"></span>Setup and detect</span><span>1</span>
         </button>
@@ -733,17 +781,15 @@
       const isScope = p.Equipment === "Oscilloscope";
       return `<div class="setupGrid">
         <section class="card">
-          <h2>Choose Workflow</h2>
+          <h2>${esc(equipmentLabel(p.Equipment))}</h2>
           <div class="content">
-            <div class="seg">
-              <button class="choice ${isScope ? "active" : ""}" data-equipment="Oscilloscope">
-                <span class="choiceTitle">Oscilloscope</span>
-                <span class="choiceText">Tektronix acquisition with B&K 4055B function-generator sweep control.</span>
-              </button>
-              <button class="choice ${!isScope ? "active" : ""}" data-equipment="LaserDopplerVibrometer">
-                <span class="choiceTitle">Laser Doppler Vibrometer</span>
-                <span class="choiceText">PSV-680F QTec data workflow with external or PSV generator setup.</span>
-              </button>
+            <div class="compactList">
+              <div class="mini"><b>Workflow</b><span class="muted">${esc(equipmentLabel(p.Equipment))}</span></div>
+              <div class="mini"><b>Desktop app</b><span class="muted">${esc(state.appState?.equipmentLabel || "Waiting for status")}</span></div>
+            </div>
+            <div class="actionRow">
+              <button data-home>Change Workflow</button>
+              <button data-refresh>Refresh</button>
             </div>
             <div class="muted" style="margin-top:12px">${esc(state.appState?.message || state.appState?.status || "Open the desktop app and enable Cloud Relay before sending commands.")}</div>
           </div>
@@ -1170,6 +1216,30 @@
         };
       });
 
+      document.querySelectorAll("[data-home]").forEach(button => {
+        button.onclick = () => {
+          state.preset = collect();
+          state.view = "home";
+          state.dirty = false;
+          localStorage.setItem(viewKey, state.view);
+          render();
+        };
+      });
+
+      document.querySelectorAll("[data-start-equipment]").forEach(button => {
+        button.onclick = async () => {
+          state.preset = normalizePreset(state.preset || defaultPreset());
+          state.preset.Equipment = button.dataset.startEquipment;
+          state.dirty = false;
+          if (await sendCommand("apply", true, `${equipmentLabel(state.preset.Equipment)} scan opened on desktop app.`, { refresh:false })) {
+            state.view = "setup";
+            localStorage.setItem(viewKey, state.view);
+            render();
+            setTimeout(() => refreshStatus({ preserveDraft:false }).catch(() => {}), 3500);
+          }
+        };
+      });
+
       document.querySelectorAll("[data-equipment]").forEach(button => {
         button.onclick = () => {
           state.preset = collect();
@@ -1234,7 +1304,7 @@
         /^(ch\d+_Used|ch\d+_ModeIndex)$/.test(control.id);
     }
 
-    async function sendCommand(type, includePreset = false, friendlyMessage = "") {
+    async function sendCommand(type, includePreset = false, friendlyMessage = "", options = {}) {
       try {
         const body = { type };
         if (includePreset) body.preset = collect();
@@ -1244,11 +1314,13 @@
           body: JSON.stringify(body)
         });
         setNotice(friendlyMessage || result.message || "Command queued.", "ok");
-        setTimeout(() => refreshStatus({ preserveDraft:false }).catch(() => {}), 1100);
-        setTimeout(() => refreshStatus({ preserveDraft:false }).catch(() => {}), 4500);
-        if (type.startsWith("detect-")) {
-          setTimeout(() => refreshStatus({ preserveDraft:false }).catch(() => {}), 10000);
-          setTimeout(() => refreshStatus({ preserveDraft:false }).catch(() => {}), 17000);
+        if (options.refresh !== false) {
+          setTimeout(() => refreshStatus({ preserveDraft:false }).catch(() => {}), 1100);
+          setTimeout(() => refreshStatus({ preserveDraft:false }).catch(() => {}), 4500);
+          if (type.startsWith("detect-")) {
+            setTimeout(() => refreshStatus({ preserveDraft:false }).catch(() => {}), 10000);
+            setTimeout(() => refreshStatus({ preserveDraft:false }).catch(() => {}), 17000);
+          }
         }
         return true;
       } catch (error) {
@@ -1262,7 +1334,8 @@
 
     loadSavedSettings();
     if (state.token && state.relayUrl && state.labId) {
-      refreshStatus()
+      state.view = "home";
+      refreshStatus({ preserveDraft:false })
         .then(showApp)
         .catch(() => {
           localStorage.removeItem(tokenKey);
@@ -1274,12 +1347,6 @@
       state.preset = defaultPreset();
       setPills();
     }
-
-    setInterval(() => {
-      if (state.token && !document.getElementById("app").classList.contains("hidden")) {
-        refreshStatus().catch(() => {});
-      }
-    }, 4500);
   </script>
 </body>
 </html>
