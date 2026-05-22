@@ -513,6 +513,7 @@
       labId: defaultLabId,
       view: "home",
       appState: null,
+      desktopOnline: false,
       preset: null,
       dirty: false,
       selectedFgIndex: 0
@@ -609,8 +610,12 @@
 
     async function refreshStatus(options = {}) {
       const payload = await api("/api/status?labId=" + encodeURIComponent(state.labId));
-      const remotePreset = normalizePreset(payload.status?.appState?.preset || state.preset || defaultPreset());
-      state.appState = payload.status?.appState || null;
+      state.desktopOnline = payload.status?.desktopOnline === true;
+      state.appState = state.desktopOnline ? (payload.status?.appState || null) : null;
+      const remotePreset = normalizePreset(
+        state.desktopOnline
+          ? (payload.status?.appState?.preset || state.preset || defaultPreset())
+          : defaultPreset());
       if (state.dirty && options.preserveDraft !== false) {
         setPills();
         return;
@@ -695,6 +700,15 @@
     }
 
     function setPills() {
+      if (!state.desktopOnline) {
+        document.getElementById("statusPills").innerHTML = `
+          <span class="pill bad">Remote off</span>
+          <span class="pill">Idle</span>
+          <span class="pill">Desktop not connected</span>
+        `;
+        return;
+      }
+
       const ready = state.appState?.ready === true;
       const running = state.appState?.running === true;
       const equipment = state.appState?.equipmentLabel || equipmentLabel(state.preset?.Equipment) || "Scan";

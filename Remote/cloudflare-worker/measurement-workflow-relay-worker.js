@@ -9,6 +9,7 @@
 
 const COMMAND_TTL_SECONDS = 10 * 60;
 const STATUS_TTL_SECONDS = 24 * 60 * 60;
+const DESKTOP_ONLINE_SECONDS = 20;
 const TOKEN_TTL_SECONDS = 12 * 60 * 60;
 
 const corsHeaders = {
@@ -42,7 +43,7 @@ export default {
       if (url.pathname === "/api/status" && request.method === "GET") {
         const auth = await requireMobileAuth(request, env);
         const status = await env.MW_REMOTE_KV.get(statusKey(auth.labId), "json");
-        return json({ success: true, status: status ?? null });
+        return json({ success: true, status: publicStatus(status) });
       }
 
       if (url.pathname === "/api/command" && request.method === "POST") {
@@ -51,6 +52,11 @@ export default {
         const type = String(payload.type ?? "").trim();
         if (!isSupportedCommand(type)) {
           return json({ success: false, message: "Unsupported command." }, 400);
+        }
+
+        const status = await env.MW_REMOTE_KV.get(statusKey(auth.labId), "json");
+        if (!isDesktopOnline(status)) {
+          return json({ success: false, message: "Desktop remote control is off." }, 409);
         }
 
         const command = {
@@ -102,6 +108,7 @@ export default {
 
         const status = {
           labId,
+          remoteEnabled: payload.remoteEnabled === true,
           appState: payload.appState ?? null,
           lastCommand: {
             id: payload.commandId ?? "",
@@ -224,6 +231,31 @@ function commandKey(labId) {
 
 function statusKey(labId) {
   return `lab:${labId}:status`;
+}
+
+function isDesktopOnline(status) {
+  if (!status || status.remoteEnabled !== true) return false;
+  const updatedAt = Date.parse(status.updatedAt || status.desktopTimeUtc || "");
+  if (!Number.isFinite(updatedAt)) return false;
+  return Date.now() - updatedAt <= DESKTOP_ONLINE_SECONDS * 1000;
+}
+
+function publicStatus(status) {
+  if (isDesktopOnline(status)) {
+    return { ...status, desktopOnline: true };
+  }
+
+  return {
+    labId: status?.labId ?? "",
+    remoteEnabled: false,
+    desktopOnline: false,
+    updatedAt: status?.updatedAt ?? null,
+    message: status?.remoteEnabled === false
+      ? (status?.message || "Desktop remote control is off.")
+      : "Desktop app is not connected.",
+    appState: null,
+    lastCommand: status?.lastCommand ?? null
+  };
 }
 
 async function signToken(payload, secret) {
