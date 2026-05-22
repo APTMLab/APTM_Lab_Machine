@@ -1047,12 +1047,13 @@
               <option value="1" ${selected(p.ModeIndex,1)} ${stateRatio ? "disabled" : ""}>PSV Internal Generator</option>
             </select>
           </div>
-          <div>
+          ${stateRatioTargetGeneratorControl(p)}
+          <div class="full">
             <label>Scan Type</label>
             <select id="ScanTypeIndex">
               <option value="0" ${selected(p.ScanTypeIndex,0)}>Frequency, Amplitude, Phase</option>
               <option value="1" ${selected(p.ScanTypeIndex,1)}>ε And δ₀</option>
-            </select>
+                </select>
           </div>
           <div class="full resourceBox">
             <div class="resourceTop">
@@ -1100,11 +1101,20 @@
               <label style="margin:0">Function generator VISA resources</label>
               <span class="countBadge">${countLines(p.ScopeGeneratorResources)} found</span>
             </div>
+            <div class="grid">
+              <div>
+                <label>Generator Mode</label>
+                <input value="External Function Generator" readonly>
+              </div>
+              ${stateRatioTargetGeneratorControl(p)}
+              <div class="full">
             <label>Scan Type</label>
             <select id="ScanTypeIndex">
               <option value="0" ${selected(p.ScanTypeIndex,0)}>Frequency, Amplitude, Phase</option>
               <option value="1" ${selected(p.ScanTypeIndex,1)}>ε And δ₀</option>
             </select>
+              </div>
+            </div>
             <textarea id="ScopeGeneratorResources">${esc(p.ScopeGeneratorResources)}</textarea>
             <div class="actionRow">
               <button class="ghost" data-command="detect-scope-generators">Detect Function Generators</button>
@@ -1116,6 +1126,23 @@
           </div>
         </div>
       </section>`;
+    }
+
+    function stateRatioTargetGeneratorControl(p) {
+      const stateRatio = Number(p.ScanTypeIndex || 0) === 1;
+      const fgCount = Math.max(1, currentFgCount(p));
+      const targetFg = Math.min(
+        Math.max(Number(p.StateRatioTargetFunctionGeneratorIndex || 1), 1),
+        fgCount);
+      const targetOptions = Array.from({ length: fgCount }, (_, index) =>
+        `<option value="${index + 1}" ${selected(targetFg, index + 1)}>Function Generator ${index + 1}</option>`)
+        .join("");
+      return `<div class="${stateRatio ? "" : "fieldOff"}">
+        <label>Function Generator</label>
+        <select id="StateRatioTargetFunctionGeneratorIndex" ${stateRatio && fgCount > 1 ? "" : "disabled"}>
+          ${targetOptions}
+        </select>
+      </div>`;
     }
 
     function renderInputPage(p) {
@@ -1270,13 +1297,6 @@
       const sweepEpsilon = sweepIndex === 1;
       const sweepDelta = sweepIndex === 2;
       const sameFrequency = p.StateRatioSameFrequency !== false;
-      const fgCount = Math.max(1, currentFgCount(p));
-      const targetFg = Math.min(
-        Math.max(Number(p.StateRatioTargetFunctionGeneratorIndex || 1), 1),
-        fgCount);
-      const targetOptions = Array.from({ length: fgCount }, (_, index) =>
-        `<option value="${index + 1}" ${selected(targetFg, index + 1)}>Function Generator ${index + 1}</option>`)
-        .join("");
       const field = (id, label, enabled) => `<div class="${enabled ? "" : "fieldOff"}">
         <label>${label}</label>
         <input id="${id}" inputmode="decimal" value="${esc(p[id])}" ${enabled ? "" : "disabled"}>
@@ -1302,12 +1322,6 @@
             <option value="0" ${selected(p.StateRatioSweepIndex,0)}>Sweep Frequency</option>
             <option value="1" ${selected(p.StateRatioSweepIndex,1)}>Sweep ε</option>
             <option value="2" ${selected(p.StateRatioSweepIndex,2)}>Sweep δ₀</option>
-          </select>
-        </div>
-        <div>
-          <label>Function Generator</label>
-          <select id="StateRatioTargetFunctionGeneratorIndex" ${fgCount <= 1 ? "disabled" : ""}>
-            ${targetOptions}
           </select>
         </div>
         <div class="full">
