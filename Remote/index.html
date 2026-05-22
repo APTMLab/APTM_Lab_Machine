@@ -657,6 +657,19 @@
       state.preset = remotePreset;
       state.selectedFgIndex = Math.min(state.selectedFgIndex, Math.max(0, currentFgCount(state.preset) - 1));
       render();
+      updateRunMonitorFromStatus();
+    }
+
+    function updateRunMonitorFromStatus() {
+      if (state.appState?.running === true && !completedTransmissionSpectrum()) {
+        if (!state.runMonitorId) startRunMonitor();
+        return;
+      }
+
+      if (state.runMonitorId && completedTransmissionSpectrum()) {
+        clearInterval(state.runMonitorId);
+        state.runMonitorId = 0;
+      }
     }
 
     function showApp() {
@@ -1556,7 +1569,7 @@
             state.runMonitorId = 0;
           }
         } catch {
-          if (state.runMonitorAttempts > 12) {
+          if (state.runMonitorAttempts > 720) {
             clearInterval(state.runMonitorId);
             state.runMonitorId = 0;
           }
@@ -1564,8 +1577,17 @@
       }, 5000);
     }
 
+    function resumeRemoteSession() {
+      if (!state.token || !state.relayUrl || !state.labId) return;
+      refreshStatus({ preserveDraft:false }).catch(error => setNotice(error.message, "error"));
+    }
+
     document.getElementById("loginButton").onclick = login;
     document.getElementById("clearLoginButton").onclick = clearSavedLogin;
+    window.addEventListener("focus", resumeRemoteSession);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") resumeRemoteSession();
+    });
 
     loadSavedSettings();
     if (state.token && state.relayUrl && state.labId) {

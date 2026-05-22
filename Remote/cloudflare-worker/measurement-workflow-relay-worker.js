@@ -8,8 +8,10 @@
 // - TOKEN_SECRET: long random string used to sign mobile login tokens
 
 const COMMAND_TTL_SECONDS = 10 * 60;
+const CONTROL_COMMAND_TTL_SECONDS = 8 * 60 * 60;
 const STATUS_TTL_SECONDS = 24 * 60 * 60;
-const DESKTOP_ONLINE_SECONDS = 20;
+const DESKTOP_IDLE_ONLINE_SECONDS = 90;
+const DESKTOP_RUNNING_ONLINE_SECONDS = 8 * 60 * 60;
 const TOKEN_TTL_SECONDS = 12 * 60 * 60;
 
 const corsHeaders = {
@@ -60,18 +62,19 @@ export default {
           return json({ success: false, message: "Desktop remote control is off." }, 409);
         }
 
+        const commandTtl = commandTtlSeconds(type);
         const command = {
           id: crypto.randomUUID(),
           type,
           preset: payload.preset ?? null,
           createdAt: new Date().toISOString(),
-          expiresAt: new Date(Date.now() + COMMAND_TTL_SECONDS * 1000).toISOString()
+          expiresAt: new Date(Date.now() + commandTtl * 1000).toISOString()
         };
 
         await env.MW_REMOTE_KV.put(
           commandKey(auth.labId),
           JSON.stringify(command),
-          { expirationTtl: COMMAND_TTL_SECONDS });
+          { expirationTtl: commandTtl });
 
         return json({ success: true, commandId: command.id, message: "Command queued." });
       }
@@ -230,6 +233,12 @@ function isSupportedCommand(type) {
   ].includes(type);
 }
 
+function commandTtlSeconds(type) {
+  return ["stop", "pause", "outputs-off"].includes(String(type || "").trim().toLowerCase())
+    ? CONTROL_COMMAND_TTL_SECONDS
+    : COMMAND_TTL_SECONDS;
+}
+
 function commandKey(labId) {
   return `lab:${labId}:command`;
 }
@@ -242,7 +251,10 @@ function isDesktopOnline(status) {
   if (!status || status.remoteEnabled !== true) return false;
   const updatedAt = Date.parse(status.updatedAt || status.desktopTimeUtc || "");
   if (!Number.isFinite(updatedAt)) return false;
-  return Date.now() - updatedAt <= DESKTOP_ONLINE_SECONDS * 1000;
+  const timeoutSeconds = status.appState?.running === true
+    ? DESKTOP_RUNNING_ONLINE_SECONDS
+    : DESKTOP_IDLE_ONLINE_SECONDS;
+  return Date.now() - updatedAt <= timeoutSeconds * 1000;
 }
 
 function publicStatus(status) {
