@@ -56,6 +56,7 @@ export default {
 
         const status = await env.MW_REMOTE_KV.get(statusKey(auth.labId), "json");
         if (!isDesktopOnline(status)) {
+          await env.MW_REMOTE_KV.delete(commandKey(auth.labId));
           return json({ success: false, message: "Desktop remote control is off." }, 409);
         }
 
@@ -90,6 +91,10 @@ export default {
           ...payload,
           updatedAt: new Date().toISOString()
         };
+        if (status.remoteEnabled !== true) {
+          await env.MW_REMOTE_KV.delete(commandKey(labId));
+        }
+
         await env.MW_REMOTE_KV.put(
           statusKey(labId),
           JSON.stringify(status),

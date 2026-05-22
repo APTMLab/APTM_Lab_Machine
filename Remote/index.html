@@ -1322,6 +1322,15 @@
 
     async function sendCommand(type, includePreset = false, friendlyMessage = "", options = {}) {
       try {
+        const status = await api("/api/status?labId=" + encodeURIComponent(state.labId));
+        state.desktopOnline = status.status?.desktopOnline === true;
+        state.appState = state.desktopOnline ? (status.status?.appState || null) : null;
+        if (!state.desktopOnline) {
+          setPills();
+          setNotice("Desktop remote control is off. Enable Remote in the desktop app first.", "error");
+          return false;
+        }
+
         const body = { type };
         if (includePreset) body.preset = collect();
         state.dirty = false;
