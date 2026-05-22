@@ -144,6 +144,8 @@
     .triGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
     .smallGrid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
     .full { grid-column:1 / -1; }
+    .fieldOff { opacity:.42; }
+    .fieldOff input, .fieldOff select { background:#f8fafc; }
 
     label {
       display:block;
@@ -289,6 +291,21 @@
       background:#fbfdff;
       padding:12px;
       margin:11px 0;
+    }
+
+    .pager {
+      display:grid;
+      grid-template-columns:42px 1fr 42px;
+      gap:8px;
+      align-items:center;
+      margin:0 0 12px;
+    }
+
+    .pagerText {
+      text-align:center;
+      font-weight:850;
+      color:#334155;
+      font-size:13px;
     }
 
     .channelTop {
@@ -476,7 +493,9 @@
       labId: defaultLabId,
       view: localStorage.getItem(viewKey) || "setup",
       appState: null,
-      preset: null
+      preset: null,
+      dirty: false,
+      selectedFgIndex: 0
     };
 
     function esc(value) {
@@ -568,10 +587,17 @@
       document.getElementById("loginMessage").textContent = "Saved login cleared. Enter the current password.";
     }
 
-    async function refreshStatus() {
+    async function refreshStatus(options = {}) {
       const payload = await api("/api/status?labId=" + encodeURIComponent(state.labId));
+      const remotePreset = normalizePreset(payload.status?.appState?.preset || state.preset || defaultPreset());
       state.appState = payload.status?.appState || null;
-      state.preset = normalizePreset(state.appState?.preset || state.preset || defaultPreset());
+      if (state.dirty && options.preserveDraft !== false) {
+        setPills();
+        return;
+      }
+
+      state.preset = remotePreset;
+      state.selectedFgIndex = Math.min(state.selectedFgIndex, Math.max(0, currentFgCount(state.preset) - 1));
       render();
     }
 
@@ -630,6 +656,21 @@
       preset.Channels = Array.isArray(preset.Channels) ? preset.Channels : [];
       preset.FunctionGenerators = Array.isArray(preset.FunctionGenerators) ? preset.FunctionGenerators : [];
       preset.ScopeChannels = Array.isArray(preset.ScopeChannels) ? preset.ScopeChannels : [];
+      if (preset.Equipment !== "Oscilloscope" && Number(preset.ScanTypeIndex || 0) === 1) {
+        preset.ModeIndex = 0;
+      }
+
+      if (preset.Equipment !== "Oscilloscope" && Number(preset.ModeIndex || 0) === 1) {
+        for (const channel of preset.Channels) {
+          if (Number(channel?.ModeIndex || 0) === 2) channel.ModeIndex = 0;
+          if (channel) {
+            channel.PhaseLow = "";
+            channel.PhaseHigh = "";
+            channel.PhaseStep = "";
+            channel.FixedPhase = "";
+          }
+        }
+      }
       return preset;
     }
 
@@ -651,12 +692,20 @@
     }
 
     function currentFgCount(p = state.preset) {
+      if (p?.Equipment !== "Oscilloscope" && Number(p?.ModeIndex || 0) === 1) {
+        return 2;
+      }
+
       const resourceText = p?.Equipment === "Oscilloscope" ? p.ScopeGeneratorResources : p.VisaResources;
-      return Math.max(1, Math.min(5, state.appState?.activeFunctionGenerators || countLines(resourceText) || 1));
+      const fromText = countLines(resourceText);
+      const fromApp = state.dirty ? 0 : state.appState?.activeFunctionGenerators || 0;
+      return Math.max(0, Math.min(5, fromText || fromApp || 0));
     }
 
     function currentScopeCount(p = state.preset) {
-      return Math.max(1, Math.min(5, state.appState?.activeOscilloscopes || countLines(p?.OscilloscopeResources) || 1));
+      const fromText = countLines(p?.OscilloscopeResources);
+      const fromApp = state.dirty ? 0 : state.appState?.activeOscilloscopes || 0;
+      return Math.max(0, Math.min(5, fromText || fromApp || 0));
     }
 
     function render() {
@@ -704,6 +753,7 @@
     }
 
     function renderLdvSetup(p) {
+      const stateRatio = Number(p.ScanTypeIndex || 0) === 1;
       return `<section class="card">
         <h2>LDV Setup</h2>
         <div class="content grid">
@@ -723,7 +773,7 @@
             <label>Generator mode</label>
             <select id="ModeIndex">
               <option value="0" ${selected(p.ModeIndex,0)}>External function generator</option>
-              <option value="1" ${selected(p.ModeIndex,1)}>PSV internal generator</option>
+              <option value="1" ${selected(p.ModeIndex,1)} ${stateRatio ? "disabled" : ""}>PSV internal generator</option>
             </select>
           </div>
           <div>
@@ -812,6 +862,7 @@
 
     function renderInputPage(p) {
       const isScope = p.Equipment === "Oscilloscope";
+      const isStateRatio = !isScope && Number(p.ScanTypeIndex || 0) === 1;
       return `<div class="pageGrid">
         <div>
           <section class="card">
@@ -838,7 +889,7 @@
           ${isScope ? renderScopeAcquisition(p) : renderLdvAcquisition(p)}
         </div>
         <div>
-          ${renderFunctionGenerators(p)}
+          ${isStateRatio ? renderStateRatioInputs(p) : renderFunctionGenerators(p)}
         </div>
       </div>`;
     }
@@ -847,8 +898,31 @@
       const fgCount = currentFgCount(p);
       const channels = p.Channels || [];
       const outputs = p.FunctionGenerators || [];
+      const internalGenerator = p.Equipment !== "Oscilloscope" && Number(p.ModeIndex || 0) === 1;
+      if (fgCount <= 0) {
+        return `<section class="card"><h2>Function Generators</h2><div class="content muted">Detect or enter function-generator VISA resources in Setup before entering channel inputs.</div></section>`;
+      }
+
+      if (internalGenerator) {
+        let internalHtml = `<section class="card"><h2>PSV Internal Generator</h2><div class="content"><div class="muted">The PSV internal generator exposes four channels with phase fixed at 0 degrees.</div>`;
+        for (let index = 0; index < 4; index++) {
+          internalHtml += renderChannel(index, channels[index] || {}, false, `CH${index + 1}`);
+        }
+        return internalHtml + `</div></section>`;
+      }
+
+      state.selectedFgIndex = Math.min(state.selectedFgIndex, fgCount - 1);
+      const visibleFg = state.selectedFgIndex;
       let html = `<section class="card"><h2>Function Generators</h2><div class="content">`;
-      for (let fg = 0; fg < fgCount; fg++) {
+      if (fgCount > 1) {
+        html += `<div class="pager">
+          <button data-fg-prev>&lt;</button>
+          <div class="pagerText">Function Generator ${visibleFg + 1} of ${fgCount}</div>
+          <button data-fg-next>&gt;</button>
+        </div>`;
+      }
+
+      for (let fg = visibleFg; fg <= visibleFg; fg++) {
         const output = outputs[fg] || {};
         html += `<div class="channel">
           <div class="channelTop"><div class="channelTitle">B&K Precision 4055B FG ${fg + 1}</div></div>
@@ -859,35 +933,64 @@
             <label class="switch"><input id="fg${fg}_WaveCombineEnabled" type="checkbox" ${checked(output.WaveCombineEnabled)}> Wave combine</label>
             <div><label>Output CH</label><select id="fg${fg}_WaveCombineOutputIndex"><option value="0" ${selected(output.WaveCombineOutputIndex,0)}>CH1</option><option value="1" ${selected(output.WaveCombineOutputIndex,1)}>CH2</option></select></div>
           </div>`;
-        for (let ch = 0; ch < 2; ch++) html += renderChannel(fg * 2 + ch, channels[fg * 2 + ch] || {});
+        for (let ch = 0; ch < 2; ch++) html += renderChannel(fg * 2 + ch, channels[fg * 2 + ch] || {}, true, `CH${ch + 1}`);
         html += `</div>`;
       }
       return html + `</div></section>`;
     }
 
-    function renderChannel(index, channel) {
+    function renderChannel(index, channel, phaseSupported = true, label = `CH${(index % 2) + 1}`) {
+      const used = channel.Used === true;
+      const modeIndex = phaseSupported ? Number(channel.ModeIndex || 0) : Math.min(Number(channel.ModeIndex || 0), 1);
+      const modeOptions = modes
+        .map((m,i) => phaseSupported || i !== 2
+          ? `<option value="${i}" ${selected(modeIndex,i)}>${m}</option>`
+          : "")
+        .join("");
+      const field = (name, title, rowClass = "") => {
+        const active = channelFieldActive(used, modeIndex, name, phaseSupported);
+        return `<div class="${active ? "" : "fieldOff"} ${rowClass}">
+          <label>${title}</label>
+          <input id="ch${index}_${name}" inputmode="decimal" value="${esc(channel[name])}" ${active ? "" : "disabled"}>
+        </div>`;
+      };
       return `<div class="channel">
         <div class="channelTop">
-          <div class="channelTitle">CH${(index % 2) + 1}</div>
+          <div class="channelTitle">${esc(label)}</div>
           <label class="switch"><input id="ch${index}_Used" type="checkbox" ${checked(channel.Used)}> Use</label>
         </div>
         <label>Mode</label>
-        <select id="ch${index}_ModeIndex">${modes.map((m,i) => `<option value="${i}" ${selected(channel.ModeIndex,i)}>${m}</option>`).join("")}</select>
+        <select id="ch${index}_ModeIndex" ${used ? "" : "disabled"}>${modeOptions}</select>
         <div class="smallGrid" style="margin-top:9px">
-          <div><label>Freq low</label><input id="ch${index}_FrequencyLow" inputmode="decimal" value="${esc(channel.FrequencyLow)}"></div>
-          <div><label>Freq high</label><input id="ch${index}_FrequencyHigh" inputmode="decimal" value="${esc(channel.FrequencyHigh)}"></div>
-          <div><label>Freq step</label><input id="ch${index}_FrequencyStep" inputmode="decimal" value="${esc(channel.FrequencyStep)}"></div>
-          <div><label>Freq fixed</label><input id="ch${index}_FixedFrequency" inputmode="decimal" value="${esc(channel.FixedFrequency)}"></div>
-          <div><label>Amp low</label><input id="ch${index}_AmplitudeLow" inputmode="decimal" value="${esc(channel.AmplitudeLow)}"></div>
-          <div><label>Amp high</label><input id="ch${index}_AmplitudeHigh" inputmode="decimal" value="${esc(channel.AmplitudeHigh)}"></div>
-          <div><label>Amp step</label><input id="ch${index}_AmplitudeStep" inputmode="decimal" value="${esc(channel.AmplitudeStep)}"></div>
-          <div><label>Amp fixed</label><input id="ch${index}_FixedAmplitude" inputmode="decimal" value="${esc(channel.FixedAmplitude)}"></div>
-          <div><label>Phase low</label><input id="ch${index}_PhaseLow" inputmode="decimal" value="${esc(channel.PhaseLow)}"></div>
-          <div><label>Phase high</label><input id="ch${index}_PhaseHigh" inputmode="decimal" value="${esc(channel.PhaseHigh)}"></div>
-          <div><label>Phase step</label><input id="ch${index}_PhaseStep" inputmode="decimal" value="${esc(channel.PhaseStep)}"></div>
-          <div><label>Phase fixed</label><input id="ch${index}_FixedPhase" inputmode="decimal" value="${esc(channel.FixedPhase)}"></div>
+          ${field("FrequencyLow", "Freq low")}
+          ${field("FrequencyHigh", "Freq high")}
+          ${field("FrequencyStep", "Freq step")}
+          ${field("FixedFrequency", "Freq fixed")}
+          ${field("AmplitudeLow", "Amp low")}
+          ${field("AmplitudeHigh", "Amp high")}
+          ${field("AmplitudeStep", "Amp step")}
+          ${field("FixedAmplitude", "Amp fixed")}
+          ${phaseSupported ? field("PhaseLow", "Phase low") : ""}
+          ${phaseSupported ? field("PhaseHigh", "Phase high") : ""}
+          ${phaseSupported ? field("PhaseStep", "Phase step") : ""}
+          ${phaseSupported ? field("FixedPhase", "Phase fixed") : ""}
         </div>
       </div>`;
+    }
+
+    function channelFieldActive(used, modeIndex, name, phaseSupported) {
+      if (!used) return false;
+      if (!phaseSupported && name.toLowerCase().includes("phase")) return false;
+      if (modeIndex === 0) {
+        return ["FrequencyLow", "FrequencyHigh", "FrequencyStep", "FixedAmplitude", "FixedPhase"].includes(name);
+      }
+      if (modeIndex === 1) {
+        return ["FixedFrequency", "AmplitudeLow", "AmplitudeHigh", "AmplitudeStep", "FixedPhase"].includes(name);
+      }
+      if (modeIndex === 2) {
+        return phaseSupported && ["FixedFrequency", "FixedAmplitude", "PhaseLow", "PhaseHigh", "PhaseStep"].includes(name);
+      }
+      return ["FixedFrequency", "FixedAmplitude", "FixedPhase"].includes(name);
     }
 
     function renderLdvAcquisition(p) {
@@ -900,10 +1003,20 @@
           <label>Skip saved scans</label>
           <label class="switch"><input id="SkipCompletedScans" type="checkbox" ${checked(p.SkipCompletedScans)}> Use skip</label>
         </div>
-        <div><label>State-ratio frequency Hz</label><input id="StateRatioFrequency" inputmode="decimal" value="${esc(p.StateRatioFrequency)}"></div>
+      </div></section>`;
+    }
+
+    function renderStateRatioInputs(p) {
+      const sweepEpsilon = Number(p.StateRatioSweepIndex || 0) === 0;
+      const field = (id, label, enabled) => `<div class="${enabled ? "" : "fieldOff"}">
+        <label>${label}</label>
+        <input id="${id}" inputmode="decimal" value="${esc(p[id])}" ${enabled ? "" : "disabled"}>
+      </div>`;
+      return `<section class="card"><h2>Epsilon and Delta_0 Sweep</h2><div class="content grid">
+        <div><label>Frequency Hz</label><input id="StateRatioFrequency" inputmode="decimal" value="${esc(p.StateRatioFrequency)}"></div>
         <div><label>Amplitude cap Vpp</label><input id="StateRatioLimit" inputmode="decimal" value="${esc(p.StateRatioLimit || "4")}"></div>
         <div>
-          <label>Epsilon/delta sweep</label>
+          <label>Sweep</label>
           <select id="StateRatioSweepIndex">
             <option value="0" ${selected(p.StateRatioSweepIndex,0)}>Sweep epsilon</option>
             <option value="1" ${selected(p.StateRatioSweepIndex,1)}>Sweep delta_0</option>
@@ -911,26 +1024,26 @@
         </div>
         <div>
           <label>Epsilon divide</label>
-          <select id="EpsilonDivisionIndex">
+          <select id="EpsilonDivisionIndex" ${sweepEpsilon ? "" : "disabled"}>
             <option value="0" ${selected(p.EpsilonDivisionIndex,0)}>Divide by step</option>
             <option value="1" ${selected(p.EpsilonDivisionIndex,1)}>Divide by points</option>
           </select>
         </div>
         <div>
           <label>Delta divide</label>
-          <select id="DeltaDivisionIndex">
+          <select id="DeltaDivisionIndex" ${sweepEpsilon ? "disabled" : ""}>
             <option value="0" ${selected(p.DeltaDivisionIndex,0)}>Divide by step</option>
             <option value="1" ${selected(p.DeltaDivisionIndex,1)}>Divide by points</option>
           </select>
         </div>
-        <div><label>Epsilon low</label><input id="EpsilonLow" inputmode="decimal" value="${esc(p.EpsilonLow)}"></div>
-        <div><label>Epsilon high</label><input id="EpsilonHigh" inputmode="decimal" value="${esc(p.EpsilonHigh)}"></div>
-        <div><label>Epsilon step/points</label><input id="EpsilonStep" inputmode="decimal" value="${esc(p.EpsilonStep)}"></div>
-        <div><label>Fixed epsilon</label><input id="FixedEpsilon" inputmode="decimal" value="${esc(p.FixedEpsilon)}"></div>
-        <div><label>Delta low</label><input id="DeltaLow" inputmode="decimal" value="${esc(p.DeltaLow)}"></div>
-        <div><label>Delta high</label><input id="DeltaHigh" inputmode="decimal" value="${esc(p.DeltaHigh)}"></div>
-        <div><label>Delta step/points</label><input id="DeltaStep" inputmode="decimal" value="${esc(p.DeltaStep)}"></div>
-        <div><label>Fixed delta</label><input id="FixedDelta" inputmode="decimal" value="${esc(p.FixedDelta)}"></div>
+        ${field("EpsilonLow", "Epsilon low", sweepEpsilon)}
+        ${field("EpsilonHigh", "Epsilon high", sweepEpsilon)}
+        ${field("EpsilonStep", "Epsilon step/points", sweepEpsilon)}
+        ${field("FixedEpsilon", "Fixed epsilon", !sweepEpsilon)}
+        ${field("DeltaLow", "Delta low", !sweepEpsilon)}
+        ${field("DeltaHigh", "Delta high", !sweepEpsilon)}
+        ${field("DeltaStep", "Delta step/points", !sweepEpsilon)}
+        ${field("FixedDelta", "Fixed delta", sweepEpsilon)}
       </div></section>`;
     }
 
@@ -938,6 +1051,10 @@
       const count = currentScopeCount(p);
       const scopes = p.ScopeChannels || [];
       let html = `<section class="card"><h2>Oscilloscopes</h2><div class="content">`;
+      if (count <= 0) {
+        return html + `<div class="muted">Detect or enter oscilloscope VISA resources in Setup before selecting signal channels.</div></div></section>`;
+      }
+
       for (let i = 0; i < count; i++) {
         const scope = scopes[i] || { Channels: [], TriggerIndex: 0 };
         html += `<div class="channel">
@@ -1033,6 +1150,17 @@
     }
 
     function wirePage() {
+      document.querySelectorAll("input, textarea, select").forEach(control => {
+        if (["relayUrl", "labId", "password"].includes(control.id)) return;
+        const update = () => {
+          state.preset = collect();
+          state.dirty = true;
+          if (shouldRerenderFor(control)) render();
+        };
+        control.addEventListener("input", update);
+        control.addEventListener("change", update);
+      });
+
       document.querySelectorAll("[data-view]").forEach(button => {
         button.onclick = () => {
           state.preset = collect();
@@ -1046,6 +1174,23 @@
         button.onclick = () => {
           state.preset = collect();
           state.preset.Equipment = button.dataset.equipment;
+          state.dirty = true;
+          render();
+        };
+      });
+
+      document.querySelectorAll("[data-fg-prev]").forEach(button => {
+        button.onclick = () => {
+          state.preset = collect();
+          state.selectedFgIndex = Math.max(0, state.selectedFgIndex - 1);
+          render();
+        };
+      });
+
+      document.querySelectorAll("[data-fg-next]").forEach(button => {
+        button.onclick = () => {
+          state.preset = collect();
+          state.selectedFgIndex = Math.min(currentFgCount(state.preset) - 1, state.selectedFgIndex + 1);
           render();
         };
       });
@@ -1060,15 +1205,19 @@
 
       document.querySelectorAll("[data-next]").forEach(button => {
         button.onclick = async () => {
-          await sendCommand("apply", true, "Setup applied. Move to scan inputs.");
-          state.view = "inputs";
-          localStorage.setItem(viewKey, state.view);
-          render();
+          if (await sendCommand("apply", true, "Setup applied. Move to scan inputs.")) {
+            state.view = "inputs";
+            localStorage.setItem(viewKey, state.view);
+            render();
+          }
         };
       });
 
       document.querySelectorAll("[data-refresh]").forEach(button => {
-        button.onclick = () => refreshStatus().then(() => setNotice("Status refreshed.", "ok")).catch(error => setNotice(error.message, "error"));
+        button.onclick = () => {
+          state.dirty = false;
+          refreshStatus({ preserveDraft:false }).then(() => setNotice("Status refreshed from desktop app.", "ok")).catch(error => setNotice(error.message, "error"));
+        };
       });
 
       document.querySelectorAll("[data-reset]").forEach(button => {
@@ -1078,18 +1227,33 @@
       });
     }
 
+    function shouldRerenderFor(control) {
+      return control.id === "ModeIndex" ||
+        control.id === "ScanTypeIndex" ||
+        control.id === "StateRatioSweepIndex" ||
+        /^(ch\d+_Used|ch\d+_ModeIndex)$/.test(control.id);
+    }
+
     async function sendCommand(type, includePreset = false, friendlyMessage = "") {
       try {
         const body = { type };
         if (includePreset) body.preset = collect();
+        state.dirty = false;
         const result = await api("/api/command", {
           method: "POST",
           body: JSON.stringify(body)
         });
         setNotice(friendlyMessage || result.message || "Command queued.", "ok");
-        setTimeout(() => refreshStatus().catch(() => {}), 1100);
+        setTimeout(() => refreshStatus({ preserveDraft:false }).catch(() => {}), 1100);
+        setTimeout(() => refreshStatus({ preserveDraft:false }).catch(() => {}), 4500);
+        if (type.startsWith("detect-")) {
+          setTimeout(() => refreshStatus({ preserveDraft:false }).catch(() => {}), 10000);
+          setTimeout(() => refreshStatus({ preserveDraft:false }).catch(() => {}), 17000);
+        }
+        return true;
       } catch (error) {
         setNotice(error.message, "error");
+        return false;
       }
     }
 
