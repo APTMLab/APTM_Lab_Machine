@@ -159,6 +159,7 @@
           <input id="password" type="password" autocomplete="current-password" />
         </div>
         <button id="loginButton" class="primary full">Login</button>
+        <button id="clearLoginButton" class="full" type="button">Clear Saved Login</button>
         <div id="loginMessage" class="muted full">Use the credentials configured in the relay worker.</div>
       </div>
     </section>
@@ -173,6 +174,7 @@
     <button id="stopButton" class="danger">Stop</button>
     <button id="outputsOffButton" class="danger">Outputs Off</button>
     <button id="resetButton">Reset Inputs</button>
+    <button id="logoutButton">Logout</button>
   </div>
 
   <script>
@@ -247,6 +249,16 @@
       } catch (error) {
         document.getElementById("loginMessage").textContent = error.message;
       }
+    }
+
+    function clearSavedLogin() {
+      state.token = "";
+      localStorage.removeItem(tokenKey);
+      document.getElementById("loginCard").classList.remove("hidden");
+      document.getElementById("app").classList.add("hidden");
+      document.getElementById("actionBar").classList.add("hidden");
+      document.getElementById("loginMessage").textContent = "Saved login cleared. Enter the current password.";
+      setPills();
     }
 
     async function refreshStatus() {
@@ -484,6 +496,7 @@
     }
 
     document.getElementById("loginButton").onclick = login;
+    document.getElementById("clearLoginButton").onclick = clearSavedLogin;
     document.getElementById("applyButton").onclick = () => sendCommand("apply", true).catch(error => alert(error.message));
     document.getElementById("runButton").onclick = () => sendCommand("run", true).catch(error => alert(error.message));
     document.getElementById("stopButton").onclick = () => sendCommand("stop").catch(error => alert(error.message));
@@ -492,10 +505,18 @@
     document.getElementById("resetButton").onclick = () => {
       if (confirm("Reset scan inputs on the desktop app?")) sendCommand("reset").catch(error => alert(error.message));
     };
+    document.getElementById("logoutButton").onclick = clearSavedLogin;
 
     loadSavedSettings();
     if (state.token && state.relayUrl && state.labId) {
-      refreshStatus().then(showApp).catch(() => localStorage.removeItem(tokenKey));
+      refreshStatus()
+        .then(showApp)
+        .catch(() => {
+          localStorage.removeItem(tokenKey);
+          state.token = "";
+          document.getElementById("loginMessage").textContent = "Saved login expired. Login again with the current password.";
+          setPills();
+        });
     } else {
       setPills();
     }
