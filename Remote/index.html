@@ -159,6 +159,7 @@
           <input id="password" type="password" autocomplete="current-password" />
         </div>
         <button id="loginButton" class="primary full">Login</button>
+        <button id="clearLoginButton" class="full" type="button">Clear Saved Login</button>
         <div id="loginMessage" class="muted full">Use the credentials configured in the relay worker.</div>
       </div>
     </section>
@@ -173,15 +174,18 @@
     <button id="stopButton" class="danger">Stop</button>
     <button id="outputsOffButton" class="danger">Outputs Off</button>
     <button id="resetButton">Reset Inputs</button>
+    <button id="logoutButton">Logout</button>
   </div>
 
   <script>
     const settingsKey = "measurement-workflow-remote-settings";
     const tokenKey = "measurement-workflow-remote-token";
+    const defaultRelayUrl = "https://measurement-workflow-relay.hk2799.workers.dev";
+    const defaultLabId = "aptm-lab";
     const state = {
       token: localStorage.getItem(tokenKey) || "",
-      relayUrl: "",
-      labId: "",
+      relayUrl: defaultRelayUrl,
+      labId: defaultLabId,
       appState: null,
       preset: null
     };
@@ -192,8 +196,8 @@
     function loadSavedSettings() {
       try {
         const saved = JSON.parse(localStorage.getItem(settingsKey) || "{}");
-        state.relayUrl = saved.relayUrl || "";
-        state.labId = saved.labId || "";
+        state.relayUrl = saved.relayUrl || defaultRelayUrl;
+        state.labId = saved.labId || defaultLabId;
         document.getElementById("relayUrl").value = state.relayUrl;
         document.getElementById("labId").value = state.labId;
       } catch {}
@@ -221,9 +225,15 @@
       if (state.token) headers.Authorization = "Bearer " + state.token;
       if (options.body && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
       const response = await fetch(root + path, { ...options, headers });
-      const payload = await response.json().catch(() => ({ success:false, message:response.statusText }));
+      const raw = await response.text();
+      let payload = null;
+      try {
+        payload = raw ? JSON.parse(raw) : null;
+      } catch {
+        payload = { success:false, message:raw || response.statusText };
+      }
       if (!response.ok || payload.success === false) {
-        throw new Error(payload.message || response.statusText);
+        throw new Error(payload?.message || response.statusText);
       }
 
       return payload;
@@ -233,6 +243,10 @@
       state.relayUrl = document.getElementById("relayUrl").value.trim().replace(/\/+$/, "");
       state.labId = document.getElementById("labId").value.trim();
       const password = document.getElementById("password").value;
+      if (!state.relayUrl || !state.labId || !password) {
+        document.getElementById("loginMessage").textContent = "Relay URL, Lab ID, and password are required.";
+        return;
+      }
       saveSettings();
       try {
         const payload = await api("/api/login", {
@@ -247,6 +261,16 @@
       } catch (error) {
         document.getElementById("loginMessage").textContent = error.message;
       }
+    }
+
+    function clearSavedLogin() {
+      state.token = "";
+      localStorage.removeItem(tokenKey);
+      document.getElementById("loginCard").classList.remove("hidden");
+      document.getElementById("app").classList.add("hidden");
+      document.getElementById("actionBar").classList.add("hidden");
+      document.getElementById("loginMessage").textContent = "Saved login cleared. Enter the current password.";
+      setPills();
     }
 
     async function refreshStatus() {
@@ -484,6 +508,7 @@
     }
 
     document.getElementById("loginButton").onclick = login;
+    document.getElementById("clearLoginButton").onclick = clearSavedLogin;
     document.getElementById("applyButton").onclick = () => sendCommand("apply", true).catch(error => alert(error.message));
     document.getElementById("runButton").onclick = () => sendCommand("run", true).catch(error => alert(error.message));
     document.getElementById("stopButton").onclick = () => sendCommand("stop").catch(error => alert(error.message));
@@ -492,10 +517,18 @@
     document.getElementById("resetButton").onclick = () => {
       if (confirm("Reset scan inputs on the desktop app?")) sendCommand("reset").catch(error => alert(error.message));
     };
+    document.getElementById("logoutButton").onclick = clearSavedLogin;
 
     loadSavedSettings();
     if (state.token && state.relayUrl && state.labId) {
-      refreshStatus().then(showApp).catch(() => localStorage.removeItem(tokenKey));
+      refreshStatus()
+        .then(showApp)
+        .catch(() => {
+          localStorage.removeItem(tokenKey);
+          state.token = "";
+          document.getElementById("loginMessage").textContent = "Saved login expired. Login again with the current password.";
+          setPills();
+        });
     } else {
       setPills();
     }

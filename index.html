@@ -180,10 +180,12 @@
   <script>
     const settingsKey = "measurement-workflow-remote-settings";
     const tokenKey = "measurement-workflow-remote-token";
+    const defaultRelayUrl = "https://measurement-workflow-relay.hk2799.workers.dev";
+    const defaultLabId = "aptm-lab";
     const state = {
       token: localStorage.getItem(tokenKey) || "",
-      relayUrl: "",
-      labId: "",
+      relayUrl: defaultRelayUrl,
+      labId: defaultLabId,
       appState: null,
       preset: null
     };
@@ -194,8 +196,8 @@
     function loadSavedSettings() {
       try {
         const saved = JSON.parse(localStorage.getItem(settingsKey) || "{}");
-        state.relayUrl = saved.relayUrl || "";
-        state.labId = saved.labId || "";
+        state.relayUrl = saved.relayUrl || defaultRelayUrl;
+        state.labId = saved.labId || defaultLabId;
         document.getElementById("relayUrl").value = state.relayUrl;
         document.getElementById("labId").value = state.labId;
       } catch {}
@@ -223,9 +225,15 @@
       if (state.token) headers.Authorization = "Bearer " + state.token;
       if (options.body && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
       const response = await fetch(root + path, { ...options, headers });
-      const payload = await response.json().catch(() => ({ success:false, message:response.statusText }));
+      const raw = await response.text();
+      let payload = null;
+      try {
+        payload = raw ? JSON.parse(raw) : null;
+      } catch {
+        payload = { success:false, message:raw || response.statusText };
+      }
       if (!response.ok || payload.success === false) {
-        throw new Error(payload.message || response.statusText);
+        throw new Error(payload?.message || response.statusText);
       }
 
       return payload;
@@ -235,6 +243,10 @@
       state.relayUrl = document.getElementById("relayUrl").value.trim().replace(/\/+$/, "");
       state.labId = document.getElementById("labId").value.trim();
       const password = document.getElementById("password").value;
+      if (!state.relayUrl || !state.labId || !password) {
+        document.getElementById("loginMessage").textContent = "Relay URL, Lab ID, and password are required.";
+        return;
+      }
       saveSettings();
       try {
         const payload = await api("/api/login", {

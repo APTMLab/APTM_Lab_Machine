@@ -27,7 +27,12 @@ export default {
     try {
       const url = new URL(request.url);
       if (url.pathname === "/api/health") {
-        return json({ success: true, name: "Measurement WorkFlow Remote Relay" });
+        return json({
+          success: true,
+          name: "Measurement WorkFlow Remote Relay",
+          storage: "KV",
+          configured: isConfigured(env)
+        });
       }
 
       if (url.pathname === "/api/login" && request.method === "POST") {
@@ -115,15 +120,16 @@ export default {
 
       return json({ success: false, message: "Not found." }, 404);
     } catch (error) {
-      const status = error.status || 500;
-      return json({ success: false, message: error.message || "Relay error." }, status);
+      const status = typeof error?.status === "number" ? error.status : 500;
+      const message = typeof error?.message === "string" && error.message ? error.message : "Relay error.";
+      return json({ success: false, message }, status);
     }
   }
 };
 
 async function login(request, env) {
   requireConfigured(env);
-  const payload = await request.json();
+  const payload = await readJson(request);
   const labId = normalizeLabId(payload.labId, env);
   const passwordHash = await sha256Hex(String(payload.password ?? ""));
   if (passwordHash !== String(env.REMOTE_PASSWORD_SHA256 ?? "").toLowerCase()) {
@@ -141,12 +147,24 @@ async function login(request, env) {
   });
 }
 
+async function readJson(request) {
+  try {
+    return await request.json();
+  } catch {
+    throw Object.assign(new Error("Invalid JSON request."), { status: 400 });
+  }
+}
+
+function isConfigured(env) {
+  return Boolean(env.MW_REMOTE_KV &&
+      env.REMOTE_LAB_ID &&
+      env.REMOTE_PASSWORD_SHA256 &&
+      env.DESKTOP_KEY &&
+      env.TOKEN_SECRET);
+}
+
 function requireConfigured(env) {
-  if (!env.MW_REMOTE_KV ||
-      !env.REMOTE_LAB_ID ||
-      !env.REMOTE_PASSWORD_SHA256 ||
-      !env.DESKTOP_KEY ||
-      !env.TOKEN_SECRET) {
+  if (!isConfigured(env)) {
     throw Object.assign(new Error("Relay is not fully configured."), { status: 500 });
   }
 }
