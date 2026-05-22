@@ -1038,7 +1038,7 @@
             <label>Scan Type</label>
             <select id="ScanTypeIndex">
               <option value="0" ${selected(p.ScanTypeIndex,0)}>Frequency, Amplitude, Phase</option>
-              <option value="1" ${selected(p.ScanTypeIndex,1)}>Epsilon And Delta_0</option>
+              <option value="1" ${selected(p.ScanTypeIndex,1)}>ε And δ₀</option>
             </select>
           </div>
           <div class="full resourceBox">
@@ -1090,7 +1090,7 @@
             <label>Scan Type</label>
             <select id="ScanTypeIndex">
               <option value="0" ${selected(p.ScanTypeIndex,0)}>Frequency, Amplitude, Phase</option>
-              <option value="1" ${selected(p.ScanTypeIndex,1)}>Epsilon And Delta_0</option>
+              <option value="1" ${selected(p.ScanTypeIndex,1)}>ε And δ₀</option>
             </select>
             <textarea id="ScopeGeneratorResources">${esc(p.ScopeGeneratorResources)}</textarea>
             <div class="actionRow">
@@ -1257,38 +1257,38 @@
         <label>${label}</label>
         <input id="${id}" inputmode="decimal" value="${esc(p[id])}" ${enabled ? "" : "disabled"}>
       </div>`;
-      return `<section class="card"><h2>Epsilon and Delta_0 Sweep</h2><div class="content grid">
+      return `<section class="card"><h2>ε and δ₀ Sweep</h2><div class="content grid">
         <div><label>Frequency Hz</label><input id="StateRatioFrequency" inputmode="decimal" value="${esc(p.StateRatioFrequency)}"></div>
         <div><label>Amplitude cap Vpp</label><input id="StateRatioLimit" inputmode="decimal" value="${esc(p.StateRatioLimit || "4")}"></div>
         <div>
           <label>Sweep</label>
           <select id="StateRatioSweepIndex">
-            <option value="0" ${selected(p.StateRatioSweepIndex,0)}>Sweep epsilon</option>
-            <option value="1" ${selected(p.StateRatioSweepIndex,1)}>Sweep delta_0</option>
+            <option value="0" ${selected(p.StateRatioSweepIndex,0)}>Sweep ε</option>
+            <option value="1" ${selected(p.StateRatioSweepIndex,1)}>Sweep δ₀</option>
           </select>
         </div>
         <div>
-          <label>Epsilon divide</label>
+          <label>ε divide</label>
           <select id="EpsilonDivisionIndex" ${sweepEpsilon ? "" : "disabled"}>
             <option value="0" ${selected(p.EpsilonDivisionIndex,0)}>Divide by step</option>
             <option value="1" ${selected(p.EpsilonDivisionIndex,1)}>Divide by points</option>
           </select>
         </div>
         <div>
-          <label>Delta divide</label>
+          <label>δ₀ divide</label>
           <select id="DeltaDivisionIndex" ${sweepEpsilon ? "disabled" : ""}>
             <option value="0" ${selected(p.DeltaDivisionIndex,0)}>Divide by step</option>
             <option value="1" ${selected(p.DeltaDivisionIndex,1)}>Divide by points</option>
           </select>
         </div>
-        ${field("EpsilonLow", "Epsilon low", sweepEpsilon)}
-        ${field("EpsilonHigh", "Epsilon high", sweepEpsilon)}
-        ${field("EpsilonStep", "Epsilon step/points", sweepEpsilon)}
-        ${field("FixedEpsilon", "Fixed epsilon", !sweepEpsilon)}
-        ${field("DeltaLow", "Delta low", !sweepEpsilon)}
-        ${field("DeltaHigh", "Delta high", !sweepEpsilon)}
-        ${field("DeltaStep", "Delta step/points", !sweepEpsilon)}
-        ${field("FixedDelta", "Fixed delta", sweepEpsilon)}
+        ${field("EpsilonLow", "ε low", sweepEpsilon)}
+        ${field("EpsilonHigh", "ε high", sweepEpsilon)}
+        ${field("EpsilonStep", "ε step/points", sweepEpsilon)}
+        ${field("FixedEpsilon", "Fixed ε", !sweepEpsilon)}
+        ${field("DeltaLow", "δ₀ low", !sweepEpsilon)}
+        ${field("DeltaHigh", "δ₀ high", !sweepEpsilon)}
+        ${field("DeltaStep", "δ₀ step/points", !sweepEpsilon)}
+        ${field("FixedDelta", "Fixed δ₀", sweepEpsilon)}
       </div></section>`;
     }
 
