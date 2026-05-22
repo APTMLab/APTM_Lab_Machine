@@ -707,6 +707,7 @@
         StateRatioCh2FixedFrequency: "",
         StateRatioCh2FrequencyDivisionIndex: 0,
         StateRatioSameFrequency: true,
+        StateRatioTargetFunctionGeneratorIndex: 1,
         StateRatioLimit: "4",
         StateRatioSweepIndex: 0,
         StateRatioSweepTag: "Frequency",
@@ -1269,6 +1270,13 @@
       const sweepEpsilon = sweepIndex === 1;
       const sweepDelta = sweepIndex === 2;
       const sameFrequency = p.StateRatioSameFrequency !== false;
+      const fgCount = Math.max(1, currentFgCount(p));
+      const targetFg = Math.min(
+        Math.max(Number(p.StateRatioTargetFunctionGeneratorIndex || 1), 1),
+        fgCount);
+      const targetOptions = Array.from({ length: fgCount }, (_, index) =>
+        `<option value="${index + 1}" ${selected(targetFg, index + 1)}>Function Generator ${index + 1}</option>`)
+        .join("");
       const field = (id, label, enabled) => `<div class="${enabled ? "" : "fieldOff"}">
         <label>${label}</label>
         <input id="${id}" inputmode="decimal" value="${esc(p[id])}" ${enabled ? "" : "disabled"}>
@@ -1294,6 +1302,12 @@
             <option value="0" ${selected(p.StateRatioSweepIndex,0)}>Sweep Frequency</option>
             <option value="1" ${selected(p.StateRatioSweepIndex,1)}>Sweep ε</option>
             <option value="2" ${selected(p.StateRatioSweepIndex,2)}>Sweep δ₀</option>
+          </select>
+        </div>
+        <div>
+          <label>Function Generator</label>
+          <select id="StateRatioTargetFunctionGeneratorIndex" ${fgCount <= 1 ? "disabled" : ""}>
+            ${targetOptions}
           </select>
         </div>
         <div class="full">
@@ -1408,6 +1422,9 @@
       }
       if (document.getElementById("StateRatioCh1FrequencyDivisionIndex")) p.StateRatioCh1FrequencyDivisionIndex = Number(value("StateRatioCh1FrequencyDivisionIndex") || 0);
       if (document.getElementById("StateRatioCh2FrequencyDivisionIndex")) p.StateRatioCh2FrequencyDivisionIndex = Number(value("StateRatioCh2FrequencyDivisionIndex") || 0);
+      if (document.getElementById("StateRatioTargetFunctionGeneratorIndex")) {
+        p.StateRatioTargetFunctionGeneratorIndex = Number(value("StateRatioTargetFunctionGeneratorIndex") || 1);
+      }
       if (document.getElementById("StateRatioSameFrequency")) {
         p.StateRatioSameFrequency = bool("StateRatioSameFrequency");
         if (p.StateRatioSameFrequency) {
