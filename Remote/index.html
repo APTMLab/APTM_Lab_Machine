@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Measurement WorkFlow Remote</title>
+  <meta name="description" content="Remote scan control for Measurement WorkFlow laboratory acquisition software." />
+  <style>
+    :root {
+      color-scheme: light;
+      --bg:#edf4f9;
+      --panel:#ffffff;
+      --ink:#0f172a;
+      --muted:#64748b;
+      --line:#cbd5e1;
+      --line2:#dbe5ef;
+      --teal:#0f766e;
+      --teal2:#115e59;
+      --danger:#dc2626;
+      --soft:#e7f7f4;
+    }
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      min-height:100svh;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      color:var(--ink);
+      background:radial-gradient(circle at top left,#ffffff 0,#edf4f9 44%,#dbe8f2 100%);
+    }
+    .shell { max-width:900px; margin:0 auto; padding:18px 14px 104px; }
+    header {
+      position:sticky;
+      top:0;
+      z-index:10;
+      margin:-18px -14px 14px;
+      padding:16px 14px 13px;
+      background:rgba(248,251,255,.92);
+      border-bottom:1px solid rgba(148,163,184,.34);
+      backdrop-filter:blur(16px);
+    }
+    h1 { margin:0; font-size:23px; letter-spacing:-.01em; }
+    .sub { color:var(--muted); font-size:13px; margin-top:4px; }
+    .status { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+    .pill {
+      border:1px solid var(--line);
+      background:#fff;
+      color:#334155;
+      border-radius:999px;
+      padding:7px 10px;
+      font-size:12px;
+      font-weight:750;
+    }
+    .pill.ready { background:#ecfdf5; color:#115e59; border-color:#5eead4; }
+    .pill.bad { background:#fff1f2; color:#991b1b; border-color:#fecaca; }
+    .card {
+      background:rgba(255,255,255,.9);
+      border:1px solid rgba(148,163,184,.4);
+      border-radius:16px;
+      box-shadow:0 14px 34px rgba(15,23,42,.08);
+      overflow:hidden;
+      margin:12px 0;
+    }
+    .card h2 {
+      margin:0;
+      padding:13px 14px;
+      border-bottom:1px solid rgba(148,163,184,.28);
+      font-size:14px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .card h2::before { content:""; width:4px; height:18px; background:var(--teal); border-radius:4px; }
+    .content { padding:14px; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .full { grid-column:1 / -1; }
+    label { display:block; font-size:12px; color:#334155; font-weight:800; margin:0 0 5px; }
+    input, textarea, select {
+      width:100%;
+      border:1px solid var(--line);
+      border-radius:10px;
+      background:#fff;
+      color:var(--ink);
+      padding:10px 11px;
+      font:inherit;
+      font-size:15px;
+      outline:none;
+    }
+    textarea {
+      min-height:76px;
+      resize:vertical;
+      font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
+      font-size:12px;
+    }
+    input:focus, textarea:focus, select:focus { border-color:var(--teal); box-shadow:0 0 0 3px rgba(15,118,110,.14); }
+    .seg { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .seg button, button {
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:12px;
+      padding:12px 9px;
+      font-weight:850;
+      color:var(--ink);
+    }
+    .seg button.active, .primary { background:linear-gradient(135deg,var(--teal),#0d9488); color:#fff; border-color:#0d9488; }
+    .danger { color:#991b1b; border-color:#fecaca; background:#fff1f2; }
+    .muted { color:var(--muted); font-size:13px; line-height:1.35; }
+    .channel { border:1px solid rgba(148,163,184,.36); border-radius:14px; background:#fbfdff; padding:12px; margin:10px 0; }
+    .channelTop { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+    .channelTitle { font-weight:850; }
+    .switch { display:flex; align-items:center; gap:7px; font-weight:850; font-size:13px; margin:0; }
+    .switch input { width:20px; height:20px; accent-color:var(--teal); }
+    .smallGrid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+    .scopeCh { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:5px; }
+    .scopeCh label { display:flex; align-items:center; justify-content:center; gap:5px; border:1px solid var(--line); border-radius:10px; background:#fff; padding:8px; margin:0; }
+    .scopeCh input { width:16px; height:16px; accent-color:var(--teal); }
+    .bar {
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      z-index:20;
+      background:rgba(248,251,255,.94);
+      border-top:1px solid rgba(148,163,184,.35);
+      backdrop-filter:blur(16px);
+      padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+      display:grid;
+      grid-template-columns:1fr 1fr 1fr;
+      gap:8px;
+    }
+    .hidden { display:none !important; }
+    @media (max-width:620px) {
+      .grid, .smallGrid { grid-template-columns:1fr; }
+      .bar { grid-template-columns:1fr 1fr; }
+      .bar .primary { grid-column:1 / -1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <h1>Measurement WorkFlow Remote</h1>
+      <div class="sub">Remote scan input and run control</div>
+      <div id="statusPills" class="status"></div>
+    </header>
+
+    <section id="loginCard" class="card">
+      <h2>Login</h2>
+      <div class="content grid">
+        <div class="full">
+          <label>Relay API URL</label>
+          <input id="relayUrl" placeholder="https://measurement-workflow-relay.yourname.workers.dev" />
+        </div>
+        <div>
+          <label>Lab ID</label>
+          <input id="labId" placeholder="aptm-lab" />
+        </div>
+        <div>
+          <label>Password</label>
+          <input id="password" type="password" autocomplete="current-password" />
+        </div>
+        <button id="loginButton" class="primary full">Login</button>
+        <div id="loginMessage" class="muted full">Use the credentials configured in the relay worker.</div>
+      </div>
+    </section>
+
+    <main id="app" class="hidden"></main>
+  </div>
+
+  <div id="actionBar" class="bar hidden">
+    <button id="applyButton">Apply</button>
+    <button id="pauseButton">Pause</button>
+    <button id="runButton" class="primary">Apply & Run</button>
+    <button id="stopButton" class="danger">Stop</button>
+    <button id="outputsOffButton" class="danger">Outputs Off</button>
+    <button id="resetButton">Reset Inputs</button>
+  </div>
+
+  <script>
+    const settingsKey = "measurement-workflow-remote-settings";
+    const tokenKey = "measurement-workflow-remote-token";
+    const state = {
+      token: localStorage.getItem(tokenKey) || "",
+      relayUrl: "",
+      labId: "",
+      appState: null,
+      preset: null
+    };
+
+    const modes = ["Sweep frequency", "Sweep amplitude", "Sweep phase", "Fixed condition"];
+    const waveforms = ["Sine", "Square", "Ramp", "Pulse", "Noise"];
+
+    function loadSavedSettings() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(settingsKey) || "{}");
+        state.relayUrl = saved.relayUrl || "";
+        state.labId = saved.labId || "";
+        document.getElementById("relayUrl").value = state.relayUrl;
+        document.getElementById("labId").value = state.labId;
+      } catch {}
+    }
+
+    function saveSettings() {
+      localStorage.setItem(settingsKey, JSON.stringify({
+        relayUrl: state.relayUrl,
+        labId: state.labId
+      }));
+    }
+
+    function esc(value) {
+      return String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+    }
+
+    function checked(value) { return value ? "checked" : ""; }
+    function selected(actual, expected) { return Number(actual) === Number(expected) ? "selected" : ""; }
+    function value(id) { return document.getElementById(id)?.value ?? ""; }
+    function bool(id) { return document.getElementById(id)?.checked ?? false; }
+
+    async function api(path, options = {}) {
+      const root = state.relayUrl.replace(/\/+$/, "");
+      const headers = options.headers || {};
+      if (state.token) headers.Authorization = "Bearer " + state.token;
+      if (options.body && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
+      const response = await fetch(root + path, { ...options, headers });
+      const payload = await response.json().catch(() => ({ success:false, message:response.statusText }));
+      if (!response.ok || payload.success === false) {
+        throw new Error(payload.message || response.statusText);
+      }
+
+      return payload;
+    }
+
+    async function login() {
+      state.relayUrl = document.getElementById("relayUrl").value.trim().replace(/\/+$/, "");
+      state.labId = document.getElementById("labId").value.trim();
+      const password = document.getElementById("password").value;
+      saveSettings();
+      try {
+        const payload = await api("/api/login", {
+          method: "POST",
+          body: JSON.stringify({ labId: state.labId, password })
+        });
+        state.token = payload.token;
+        localStorage.setItem(tokenKey, state.token);
+        document.getElementById("loginMessage").textContent = "Logged in.";
+        await refreshStatus();
+        showApp();
+      } catch (error) {
+        document.getElementById("loginMessage").textContent = error.message;
+      }
+    }
+
+    async function refreshStatus() {
+      const payload = await api("/api/status?labId=" + encodeURIComponent(state.labId));
+      state.appState = payload.status?.appState || null;
+      state.preset = state.appState?.preset || state.preset || defaultPreset();
+      render();
+    }
+
+    function showApp() {
+      document.getElementById("loginCard").classList.add("hidden");
+      document.getElementById("app").classList.remove("hidden");
+      document.getElementById("actionBar").classList.remove("hidden");
+    }
+
+    function defaultPreset() {
+      return {
+        Equipment: "LaserDopplerVibrometer",
+        OutputRoot: "",
+        MassCount: "",
+        SettleSeconds: "10",
+        ScopeOutputRoot: "",
+        OscilloscopeResources: "",
+        ScopeGeneratorResources: "",
+        ScopeExperimentSettleSeconds: "10",
+        ScopeSettleSeconds: "1",
+        ScopeAverageIndex: 1,
+        ScopeRecordLengthIndex: 2,
+        ScopeTimebaseIndex: 0,
+        ModeIndex: 0,
+        ScanTypeIndex: 0,
+        VisaResources: "",
+        Channels: [],
+        FunctionGenerators: [],
+        ScopeChannels: []
+      };
+    }
+
+    function setPills() {
+      const ready = state.appState?.ready === true;
+      const running = state.appState?.running === true;
+      const equipment = state.appState?.equipmentLabel || state.preset?.Equipment || "Scan";
+      document.getElementById("statusPills").innerHTML = `
+        <span class="pill ${ready ? "ready" : "bad"}">${ready ? "Ready" : "Not ready"}</span>
+        <span class="pill">${running ? "Running" : "Idle"}</span>
+        <span class="pill">${esc(equipment)}</span>
+      `;
+    }
+
+    function render() {
+      state.preset = state.preset || defaultPreset();
+      setPills();
+      const p = state.preset;
+      const isScope = p.Equipment === "Oscilloscope";
+      document.getElementById("app").innerHTML = `
+        <section class="card"><h2>Workflow</h2><div class="content">
+          <div class="seg">
+            <button id="scopeMode" class="${isScope ? "active" : ""}">Oscilloscope</button>
+            <button id="ldvMode" class="${!isScope ? "active" : ""}">Laser Doppler Vibrometer</button>
+          </div>
+          <div class="muted" style="margin-top:10px">${esc(state.appState?.message || state.appState?.status || "Waiting for desktop app status.")}</div>
+        </div></section>
+        ${isScope ? renderScopeSetup(p) : renderLdvSetup(p)}
+        ${renderFunctionGenerators(p)}
+        ${isScope ? renderScopeAcquisition(p) : renderLdvAcquisition()}
+      `;
+      document.getElementById("scopeMode").onclick = () => { state.preset = collect(); state.preset.Equipment = "Oscilloscope"; render(); };
+      document.getElementById("ldvMode").onclick = () => { state.preset = collect(); state.preset.Equipment = "LaserDopplerVibrometer"; render(); };
+    }
+
+    function renderLdvSetup(p) {
+      return `<section class="card"><h2>LDV Setup</h2><div class="content grid">
+        <div class="full"><label>Output folder</label><input id="OutputRoot" value="${esc(p.OutputRoot)}"></div>
+        <div><label>Mass count</label><input id="MassCount" inputmode="numeric" value="${esc(p.MassCount)}"></div>
+        <div><label>Settle seconds</label><input id="SettleSeconds" inputmode="decimal" value="${esc(p.SettleSeconds || "10")}"></div>
+        <div><label>Generator mode</label><select id="ModeIndex"><option value="0" ${selected(p.ModeIndex,0)}>External FG</option><option value="1" ${selected(p.ModeIndex,1)}>PSV internal</option></select></div>
+        <div><label>Scan type</label><select id="ScanTypeIndex"><option value="0" ${selected(p.ScanTypeIndex,0)}>Frequency / amplitude / phase</option><option value="1" ${selected(p.ScanTypeIndex,1)}>Epsilon / delta_0</option></select></div>
+        <div class="full"><label>External FG VISA resources</label><textarea id="VisaResources">${esc(p.VisaResources)}</textarea></div>
+        <div><label>Frequency Hz</label><input id="StateRatioFrequency" inputmode="decimal" value="${esc(p.StateRatioFrequency)}"></div>
+        <div><label>Epsilon low</label><input id="EpsilonLow" inputmode="decimal" value="${esc(p.EpsilonLow)}"></div>
+        <div><label>Epsilon high</label><input id="EpsilonHigh" inputmode="decimal" value="${esc(p.EpsilonHigh)}"></div>
+        <div><label>Epsilon step/points</label><input id="EpsilonStep" inputmode="decimal" value="${esc(p.EpsilonStep)}"></div>
+        <div><label>Delta low</label><input id="DeltaLow" inputmode="decimal" value="${esc(p.DeltaLow)}"></div>
+        <div><label>Delta high</label><input id="DeltaHigh" inputmode="decimal" value="${esc(p.DeltaHigh)}"></div>
+        <div><label>Delta step/points</label><input id="DeltaStep" inputmode="decimal" value="${esc(p.DeltaStep)}"></div>
+        <div><label>Fixed epsilon</label><input id="FixedEpsilon" inputmode="decimal" value="${esc(p.FixedEpsilon)}"></div>
+        <div><label>Fixed delta</label><input id="FixedDelta" inputmode="decimal" value="${esc(p.FixedDelta)}"></div>
+      </div></section>`;
+    }
+
+    function renderScopeSetup(p) {
+      return `<section class="card"><h2>Oscilloscope Setup</h2><div class="content grid">
+        <div class="full"><label>Output folder</label><input id="ScopeOutputRoot" value="${esc(p.ScopeOutputRoot)}"></div>
+        <div class="full"><label>Oscilloscope VISA resources</label><textarea id="OscilloscopeResources">${esc(p.OscilloscopeResources)}</textarea></div>
+        <div class="full"><label>Function generator VISA resources</label><textarea id="ScopeGeneratorResources">${esc(p.ScopeGeneratorResources)}</textarea></div>
+      </div></section>`;
+    }
+
+    function renderFunctionGenerators(p) {
+      const fgCount = Math.max(1, Math.min(5, state.appState?.activeFunctionGenerators || 1));
+      const channels = p.Channels || [];
+      const outputs = p.FunctionGenerators || [];
+      let html = `<section class="card"><h2>Function Generators</h2><div class="content">`;
+      for (let fg = 0; fg < fgCount; fg++) {
+        const output = outputs[fg] || {};
+        html += `<div class="channel"><div class="channelTop"><div class="channelTitle">Function Generator ${fg + 1}</div></div>
+          <div class="grid">
+            <div><label>Waveform</label><select id="fg${fg}_WaveformIndex">${waveforms.map((w,i) => `<option value="${i}" ${selected(output.WaveformIndex,i)}>${w}</option>`).join("")}</select></div>
+            <label class="switch"><input id="fg${fg}_CouplingEnabled" type="checkbox" ${checked(output.CouplingEnabled)}> CH coupling</label>
+            <div><label>Source CH</label><select id="fg${fg}_SourceChannelIndex"><option value="0" ${selected(output.SourceChannelIndex,0)}>CH1</option><option value="1" ${selected(output.SourceChannelIndex,1)}>CH2</option></select></div>
+            <label class="switch"><input id="fg${fg}_WaveCombineEnabled" type="checkbox" ${checked(output.WaveCombineEnabled)}> Wave combine</label>
+            <div><label>Output CH</label><select id="fg${fg}_WaveCombineOutputIndex"><option value="0" ${selected(output.WaveCombineOutputIndex,0)}>CH1</option><option value="1" ${selected(output.WaveCombineOutputIndex,1)}>CH2</option></select></div>
+          </div>`;
+        for (let ch = 0; ch < 2; ch++) html += renderChannel(fg * 2 + ch, channels[fg * 2 + ch] || {});
+        html += `</div>`;
+      }
+      return html + `</div></section>`;
+    }
+
+    function renderChannel(index, channel) {
+      return `<div class="channel">
+        <div class="channelTop"><div class="channelTitle">CH${(index % 2) + 1}</div><label class="switch"><input id="ch${index}_Used" type="checkbox" ${checked(channel.Used)}> Use</label></div>
+        <label>Mode</label><select id="ch${index}_ModeIndex">${modes.map((m,i) => `<option value="${i}" ${selected(channel.ModeIndex,i)}>${m}</option>`).join("")}</select>
+        <div class="smallGrid">
+          <div><label>Freq low</label><input id="ch${index}_FrequencyLow" inputmode="decimal" value="${esc(channel.FrequencyLow)}"></div>
+          <div><label>Freq high</label><input id="ch${index}_FrequencyHigh" inputmode="decimal" value="${esc(channel.FrequencyHigh)}"></div>
+          <div><label>Freq step</label><input id="ch${index}_FrequencyStep" inputmode="decimal" value="${esc(channel.FrequencyStep)}"></div>
+          <div><label>Freq fixed</label><input id="ch${index}_FixedFrequency" inputmode="decimal" value="${esc(channel.FixedFrequency)}"></div>
+          <div><label>Amp low</label><input id="ch${index}_AmplitudeLow" inputmode="decimal" value="${esc(channel.AmplitudeLow)}"></div>
+          <div><label>Amp high</label><input id="ch${index}_AmplitudeHigh" inputmode="decimal" value="${esc(channel.AmplitudeHigh)}"></div>
+          <div><label>Amp step</label><input id="ch${index}_AmplitudeStep" inputmode="decimal" value="${esc(channel.AmplitudeStep)}"></div>
+          <div><label>Amp fixed</label><input id="ch${index}_FixedAmplitude" inputmode="decimal" value="${esc(channel.FixedAmplitude)}"></div>
+          <div><label>Phase low</label><input id="ch${index}_PhaseLow" inputmode="decimal" value="${esc(channel.PhaseLow)}"></div>
+          <div><label>Phase high</label><input id="ch${index}_PhaseHigh" inputmode="decimal" value="${esc(channel.PhaseHigh)}"></div>
+          <div><label>Phase step</label><input id="ch${index}_PhaseStep" inputmode="decimal" value="${esc(channel.PhaseStep)}"></div>
+          <div><label>Phase fixed</label><input id="ch${index}_FixedPhase" inputmode="decimal" value="${esc(channel.FixedPhase)}"></div>
+        </div>
+      </div>`;
+    }
+
+    function renderLdvAcquisition() {
+      return `<section class="card"><h2>PSV</h2><div class="content"><div class="muted">Read PSV settings on the desktop app before remote LDV runs. The remote page preserves the detected Time or FFT mode.</div></div></section>`;
+    }
+
+    function renderScopeAcquisition(p) {
+      const count = Math.max(1, Math.min(5, state.appState?.activeOscilloscopes || 1));
+      const scopes = p.ScopeChannels || [];
+      let html = `<section class="card"><h2>Oscilloscope Acquisition</h2><div class="content grid">
+        <div><label>Experiment settle (s)</label><input id="ScopeExperimentSettleSeconds" inputmode="decimal" value="${esc(p.ScopeExperimentSettleSeconds || "10")}"></div>
+        <div><label>Scope settle (s)</label><input id="ScopeSettleSeconds" inputmode="decimal" value="${esc(p.ScopeSettleSeconds || "1")}"></div>
+        <div><label>Averaging</label><select id="ScopeAverageIndex"><option value="0" ${selected(p.ScopeAverageIndex,0)}>6 (64)</option><option value="1" ${selected(p.ScopeAverageIndex,1)}>7 (128)</option><option value="2" ${selected(p.ScopeAverageIndex,2)}>8 (256)</option><option value="3" ${selected(p.ScopeAverageIndex,3)}>9 (512)</option></select></div>
+        <div><label>Record length</label><select id="ScopeRecordLengthIndex"><option value="0" ${selected(p.ScopeRecordLengthIndex,0)}>1e3</option><option value="1" ${selected(p.ScopeRecordLengthIndex,1)}>1e4</option><option value="2" ${selected(p.ScopeRecordLengthIndex,2)}>1e5</option></select></div>
+        <div><label>Timebase</label><select id="ScopeTimebaseIndex"><option value="0" ${selected(p.ScopeTimebaseIndex,0)}>Fixed FFT window</option><option value="1" ${selected(p.ScopeTimebaseIndex,1)}>Follow frequency</option></select></div>
+      </div><div class="content">`;
+      for (let i = 0; i < count; i++) {
+        const scope = scopes[i] || { Channels: [], TriggerIndex: 0 };
+        html += `<div class="channel"><div class="channelTitle">Scope ${i + 1}</div><div class="scopeCh">`;
+        for (let ch = 0; ch < 4; ch++) html += `<label><input id="scope${i}_ch${ch}" type="checkbox" ${checked((scope.Channels || [])[ch])}> CH${ch + 1}</label>`;
+        html += `</div><label style="margin-top:10px">Trigger</label><select id="scope${i}_TriggerIndex"><option value="0" ${selected(scope.TriggerIndex,0)}>CH1</option><option value="1" ${selected(scope.TriggerIndex,1)}>CH2</option><option value="2" ${selected(scope.TriggerIndex,2)}>CH3</option><option value="3" ${selected(scope.TriggerIndex,3)}>CH4</option></select></div>`;
+      }
+      return html + `</div></section>`;
+    }
+
+    function collect() {
+      const p = JSON.parse(JSON.stringify(state.preset || defaultPreset()));
+      p.Equipment = document.getElementById("scopeMode")?.classList.contains("active") ? "Oscilloscope" : "LaserDopplerVibrometer";
+      if (p.Equipment === "Oscilloscope") {
+        p.ScopeOutputRoot = value("ScopeOutputRoot");
+        p.OscilloscopeResources = value("OscilloscopeResources");
+        p.ScopeGeneratorResources = value("ScopeGeneratorResources");
+        p.ScopeExperimentSettleSeconds = value("ScopeExperimentSettleSeconds");
+        p.ScopeSettleSeconds = value("ScopeSettleSeconds");
+        p.ScopeAverageIndex = Number(value("ScopeAverageIndex") || 0);
+        p.ScopeRecordLengthIndex = Number(value("ScopeRecordLengthIndex") || 0);
+        p.ScopeTimebaseIndex = Number(value("ScopeTimebaseIndex") || 0);
+        p.ScopeChannels = p.ScopeChannels || [];
+        const scopeCount = Math.max(1, Math.min(5, state.appState?.activeOscilloscopes || 1));
+        for (let i = 0; i < scopeCount; i++) {
+          p.ScopeChannels[i] = p.ScopeChannels[i] || {};
+          p.ScopeChannels[i].Channels = [0,1,2,3].map(ch => bool(`scope${i}_ch${ch}`));
+          p.ScopeChannels[i].TriggerIndex = Number(value(`scope${i}_TriggerIndex`) || 0);
+        }
+      } else {
+        p.OutputRoot = value("OutputRoot");
+        p.MassCount = value("MassCount");
+        p.SettleSeconds = value("SettleSeconds");
+        p.ModeIndex = Number(value("ModeIndex") || 0);
+        p.ScanTypeIndex = Number(value("ScanTypeIndex") || 0);
+        p.VisaResources = value("VisaResources");
+        p.StateRatioFrequency = value("StateRatioFrequency");
+        p.EpsilonLow = value("EpsilonLow");
+        p.EpsilonHigh = value("EpsilonHigh");
+        p.EpsilonStep = value("EpsilonStep");
+        p.DeltaLow = value("DeltaLow");
+        p.DeltaHigh = value("DeltaHigh");
+        p.DeltaStep = value("DeltaStep");
+        p.FixedEpsilon = value("FixedEpsilon");
+        p.FixedDelta = value("FixedDelta");
+      }
+
+      p.Channels = p.Channels || [];
+      p.FunctionGenerators = p.FunctionGenerators || [];
+      const fgCount = Math.max(1, Math.min(5, state.appState?.activeFunctionGenerators || 1));
+      for (let fg = 0; fg < fgCount; fg++) {
+        p.FunctionGenerators[fg] = p.FunctionGenerators[fg] || {};
+        p.FunctionGenerators[fg].WaveformIndex = Number(value(`fg${fg}_WaveformIndex`) || 0);
+        p.FunctionGenerators[fg].CouplingEnabled = bool(`fg${fg}_CouplingEnabled`);
+        p.FunctionGenerators[fg].SourceChannelIndex = Number(value(`fg${fg}_SourceChannelIndex`) || 0);
+        p.FunctionGenerators[fg].WaveCombineEnabled = bool(`fg${fg}_WaveCombineEnabled`);
+        p.FunctionGenerators[fg].WaveCombineOutputIndex = Number(value(`fg${fg}_WaveCombineOutputIndex`) || 0);
+        for (let ch = 0; ch < 2; ch++) {
+          const index = fg * 2 + ch;
+          p.Channels[index] = p.Channels[index] || {};
+          p.Channels[index].Used = bool(`ch${index}_Used`);
+          p.Channels[index].ModeIndex = Number(value(`ch${index}_ModeIndex`) || 0);
+          for (const name of ["FrequencyLow","FrequencyHigh","FrequencyStep","FixedFrequency","AmplitudeLow","AmplitudeHigh","AmplitudeStep","FixedAmplitude","PhaseLow","PhaseHigh","PhaseStep","FixedPhase"]) {
+            p.Channels[index][name] = value(`ch${index}_${name}`);
+          }
+        }
+      }
+
+      state.preset = p;
+      return p;
+    }
+
+    async function sendCommand(type, includePreset = false) {
+      const body = { type };
+      if (includePreset) body.preset = collect();
+      const result = await api("/api/command", {
+        method: "POST",
+        body: JSON.stringify(body)
+      });
+      alert(result.message || "Command queued.");
+      setTimeout(refreshStatus, 900);
+    }
+
+    document.getElementById("loginButton").onclick = login;
+    document.getElementById("applyButton").onclick = () => sendCommand("apply", true).catch(error => alert(error.message));
+    document.getElementById("runButton").onclick = () => sendCommand("run", true).catch(error => alert(error.message));
+    document.getElementById("stopButton").onclick = () => sendCommand("stop").catch(error => alert(error.message));
+    document.getElementById("pauseButton").onclick = () => sendCommand("pause").catch(error => alert(error.message));
+    document.getElementById("outputsOffButton").onclick = () => sendCommand("outputs-off").catch(error => alert(error.message));
+    document.getElementById("resetButton").onclick = () => {
+      if (confirm("Reset scan inputs on the desktop app?")) sendCommand("reset").catch(error => alert(error.message));
+    };
+
+    loadSavedSettings();
+    if (state.token && state.relayUrl && state.labId) {
+      refreshStatus().then(showApp).catch(() => localStorage.removeItem(tokenKey));
+    } else {
+      setPills();
+    }
+    setInterval(() => {
+      if (state.token && !document.getElementById("app").classList.contains("hidden")) {
+        refreshStatus().catch(() => {});
+      }
+    }, 4500);
+  </script>
+</body>
+</html>
