@@ -1072,6 +1072,13 @@
             <label>Output folder</label>
             <input id="ScopeOutputRoot" value="${esc(p.ScopeOutputRoot)}">
           </div>
+          <div class="full">
+            <label>Scan Type</label>
+            <select id="ScanTypeIndex">
+              <option value="0" ${selected(p.ScanTypeIndex,0)}>Frequency, Amplitude, Phase</option>
+              <option value="1" ${selected(p.ScanTypeIndex,1)}>Epsilon And Delta_0</option>
+            </select>
+          </div>
           <div class="full resourceBox">
             <div class="resourceTop">
               <label style="margin:0">Oscilloscope VISA resources</label>
@@ -1102,7 +1109,7 @@
 
     function renderInputPage(p) {
       const isScope = p.Equipment === "Oscilloscope";
-      const isStateRatio = !isScope && Number(p.ScanTypeIndex || 0) === 1;
+      const isStateRatio = Number(p.ScanTypeIndex || 0) === 1;
       return `<div class="pageGrid">
         <div>
           <section class="card">
