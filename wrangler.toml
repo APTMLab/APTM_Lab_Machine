@@ -1,0 +1,8 @@
+name = "measurement-workflow-relay"
+main = "_worker.js"
+compatibility_date = "2026-05-21"
+workers_dev = true
+keep_vars = true
+
+[[kv_namespaces]]
+binding = "MW_REMOTE_KV"

@@ -41,6 +41,10 @@ contains the same relay API and mobile page together. In that setup, add the
 same `MW_REMOTE_KV` binding and environment variables to the Cloudflare Pages
 project, not only to a separate Worker project.
 
+If this repository is connected directly to Cloudflare Workers from GitHub,
+Cloudflare should use the root `wrangler.toml`. It points to `_worker.js` and
+keeps dashboard variables during deployment.
+
 Required Worker environment variables:
 
 - `REMOTE_LAB_ID`: the Lab ID typed on the mobile login screen
