@@ -432,6 +432,34 @@
 
     .hidden { display:none !important; }
 
+    body.plotOnly { background:#ffffff; }
+
+    body.plotOnly .shell {
+      width:100%;
+      max-width:none;
+      margin:0;
+      padding:0;
+    }
+
+    body.plotOnly header { display:none; }
+
+    .spectrumOnly {
+      width:100vw;
+      min-height:100vh;
+      background:#ffffff;
+      display:flex;
+      align-items:stretch;
+      justify-content:center;
+      padding:0;
+    }
+
+    .spectrumFigure {
+      width:100%;
+      height:100vh;
+      display:block;
+      background:#ffffff;
+    }
+
     @media (max-width:900px) {
       .pageGrid, .setupGrid { grid-template-columns:1fr; }
       .headerRow { flex-direction:column; }
@@ -516,7 +544,9 @@
       desktopOnline: false,
       preset: null,
       dirty: false,
-      selectedFgIndex: 0
+      selectedFgIndex: 0,
+      runMonitorId: 0,
+      runMonitorAttempts: 0
     };
 
     function esc(value) {
@@ -601,6 +631,9 @@
     function clearSavedLogin() {
       state.token = "";
       localStorage.removeItem(tokenKey);
+      if (state.runMonitorId) clearInterval(state.runMonitorId);
+      state.runMonitorId = 0;
+      document.body.classList.remove("plotOnly");
       document.getElementById("loginCard").classList.remove("hidden");
       document.getElementById("app").classList.add("hidden");
       setNotice("");
@@ -745,6 +778,13 @@
     function render() {
       state.preset = normalizePreset(state.preset || defaultPreset());
       setPills();
+      const completedSpectrum = completedTransmissionSpectrum();
+      document.body.classList.toggle("plotOnly", !!completedSpectrum);
+      if (completedSpectrum) {
+        document.getElementById("app").innerHTML = renderSpectrumOnly(completedSpectrum);
+        return;
+      }
+
       if (state.view === "home") {
         document.getElementById("app").innerHTML = renderHomePage();
         wirePage();
@@ -756,6 +796,151 @@
         ${state.view === "setup" ? renderSetupPage(state.preset) : renderInputPage(state.preset)}
       `;
       wirePage();
+    }
+
+    function completedTransmissionSpectrum() {
+      const spectrum = state.appState?.transmissionSpectrum;
+      if (!state.desktopOnline || !spectrum?.complete || !Array.isArray(spectrum.scans) || spectrum.scans.length === 0) {
+        return null;
+      }
+
+      return spectrum;
+    }
+
+    function renderSpectrumOnly(spectrum) {
+      return `<section class="spectrumOnly">${renderTransmissionSpectrumSvg(spectrum)}</section>`;
+    }
+
+    function renderTransmissionSpectrumSvg(spectrum) {
+      const scans = Array.isArray(spectrum.scans) ? spectrum.scans : [];
+      const axis = spectrum.axis || {};
+      const massIndexes = [...new Set(scans.flatMap(scan => (scan.metrics || []).map(metric => Number(metric.massIndex))))]
+        .filter(Number.isFinite)
+        .sort((a,b) => a - b);
+      const panels = [
+        { key:"amplitude", title:"Amplitude Response", yLabel:"Max Amp", value:metric => metric.amplitude == null ? NaN : Number(metric.amplitude) },
+        { key:"phaseBetween", title:"Phase Response between Masses", yLabel:"Phase [rad]", value:metric => metric.phaseFromMass1Radians == null ? NaN : Number(metric.phaseFromMass1Radians) },
+        { key:"phaseDriver", title:"Phase Response of Mass and Driver", yLabel:"Phase [rad]", value:metric => metric.massDriverPhaseRadians == null ? NaN : Number(metric.massDriverPhaseRadians) }
+      ];
+      const width = 1200;
+      const height = 720;
+      const left = 88;
+      const right = 34;
+      const top = 70;
+      const bottom = 72;
+      const gap = 34;
+      const panelHeight = (height - top - bottom - gap * 2) / 3;
+      const plotWidth = width - left - right;
+      const xs = scans.map(scan => Number(scan.x)).filter(Number.isFinite);
+      const xRange = paddedRange(xs.length ? xs : [0, 1], Number(axis.low), Number(axis.high));
+      const colors = ["#2563eb","#0d9488","#ea580c","#7c3aed","#dc2626","#0891b2","#65a30d","#be185d","#9333ea","#f59e0b"];
+      const text = (x,y,value,size=12,anchor="start",weight=500) =>
+        `<text x="${x}" y="${y}" font-family="Segoe UI, Arial, sans-serif" font-size="${size}" font-weight="${weight}" text-anchor="${anchor}" fill="#0f172a">${esc(value)}</text>`;
+      const line = (x1,y1,x2,y2,stroke="#dbe5ef",sw=1) =>
+        `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${sw}"/>`;
+      const mapX = x => left + (x - xRange.min) / (xRange.max - xRange.min || 1) * plotWidth;
+      let svg = `<svg class="spectrumFigure" viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Transmission spectrum plot">`;
+      svg += `<rect width="${width}" height="${height}" fill="#ffffff"/>`;
+      svg += text(26, 32, "Amplitude and Phase", 18, "start", 700);
+
+      panels.forEach((panel, panelIndex) => {
+        const yTop = top + panelIndex * (panelHeight + gap);
+        const yBottom = yTop + panelHeight;
+        const values = scans.flatMap(scan => (scan.metrics || []).map(panel.value)).filter(Number.isFinite);
+        const yRange = panel.key === "phaseBetween" || panel.key === "phaseDriver"
+          ? { min:0, max:Math.PI }
+          : paddedRange(values.length ? values : [0, 1]);
+        const mapY = y => yBottom - (y - yRange.min) / (yRange.max - yRange.min || 1) * panelHeight;
+
+        svg += text(left, yTop - 12, panel.title, 12, "start", 700);
+        svg += `<rect x="${left}" y="${yTop}" width="${plotWidth}" height="${panelHeight}" fill="#ffffff" stroke="#cbd5e1"/>`;
+        for (let i = 0; i <= 4; i++) {
+          const gx = left + plotWidth * i / 4;
+          const gy = yBottom - panelHeight * i / 4;
+          svg += line(gx, yTop, gx, yBottom);
+          svg += line(left, gy, left + plotWidth, gy);
+          const yValue = yRange.min + (yRange.max - yRange.min) * i / 4;
+          svg += text(left - 10, gy + 4, formatPlotNumber(yValue), 10, "end", 500);
+        }
+        svg += line(left, yBottom, left + plotWidth, yBottom, "#334155", 1.2);
+        svg += line(left, yTop, left, yBottom, "#334155", 1.2);
+        svg += `<text x="28" y="${yTop + panelHeight / 2}" transform="rotate(-90 28 ${yTop + panelHeight / 2})" font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="#0f172a" text-anchor="middle">${esc(panel.yLabel)}</text>`;
+
+        massIndexes.forEach((massIndex, colorIndex) => {
+          const points = [];
+          scans.forEach(scan => {
+            const metric = (scan.metrics || []).find(item => Number(item.massIndex) === massIndex);
+            if (!metric) return;
+            const y = panel.value(metric);
+            const x = Number(scan.x);
+            if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+            points.push({ x:mapX(x), y:mapY(y) });
+          });
+          if (points.length === 0) return;
+          const color = colors[colorIndex % colors.length];
+          if (points.length > 1) {
+            svg += `<polyline points="${points.map(point => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(" ")}" fill="none" stroke="${color}" stroke-width="2"/>`;
+          }
+          points.forEach(point => {
+            svg += `<circle cx="${point.x.toFixed(2)}" cy="${point.y.toFixed(2)}" r="4" fill="${color}" stroke="#fff" stroke-width="1"/>`;
+          });
+        });
+
+        if (panelIndex === panels.length - 1) {
+          drawXAxisTicks().forEach(tick => {
+            const x = mapX(tick.value);
+            svg += text(x, yBottom + 20, tick.label, 10, "middle", 500);
+          });
+          if (axis.label) svg += text(left + plotWidth / 2, yBottom + 48, axis.label, 12, "middle", 500);
+        }
+      });
+
+      massIndexes.forEach((massIndex, index) => {
+        const column = Math.floor(index / 3);
+        const row = index % 3;
+        const x = width - 200 + column * 78;
+        const y = 28 + row * 18;
+        const color = colors[index % colors.length];
+        svg += line(x, y - 4, x + 18, y - 4, color, 2.4);
+        svg += text(x + 24, y, `Mass ${massIndex}`, 11, "start", 500);
+      });
+
+      svg += `</svg>`;
+      return svg;
+
+      function drawXAxisTicks() {
+        const values = Array.isArray(axis.primaryTickValues) ? axis.primaryTickValues.map(Number) : [];
+        const labels = Array.isArray(axis.primaryTickLabels) ? axis.primaryTickLabels : [];
+        if (values.length && labels.length) {
+          return values.slice(0, labels.length).map((value, index) => ({ value, label:String(labels[index]) })).filter(tick => Number.isFinite(tick.value));
+        }
+        return [0,1,2,3,4].map(i => {
+          const value = xRange.min + (xRange.max - xRange.min) * i / 4;
+          return { value, label:formatPlotNumber(value) };
+        });
+      }
+    }
+
+    function paddedRange(values, explicitLow = NaN, explicitHigh = NaN) {
+      if (Number.isFinite(explicitLow) && Number.isFinite(explicitHigh) && explicitHigh > explicitLow) {
+        return { min:explicitLow, max:explicitHigh };
+      }
+      let min = Math.min(...values);
+      let max = Math.max(...values);
+      if (!Number.isFinite(min) || !Number.isFinite(max)) return { min:0, max:1 };
+      if (Math.abs(max - min) < 1e-12) {
+        const pad = Math.max(1, Math.abs(max) * 0.1);
+        return { min:min - pad, max:max + pad };
+      }
+      const pad = (max - min) * 0.08;
+      return { min:min - pad, max:max + pad };
+    }
+
+    function formatPlotNumber(value) {
+      if (!Number.isFinite(value)) return "";
+      const abs = Math.abs(value);
+      if ((abs > 0 && abs < 1e-3) || abs >= 1e4) return value.toExponential(2);
+      return Number(value.toPrecision(4)).toString();
     }
 
     function renderHomePage() {
@@ -1341,6 +1526,9 @@
           body: JSON.stringify(body)
         });
         setNotice(friendlyMessage || result.message || "Command queued.", "ok");
+        if (type === "run") {
+          startRunMonitor();
+        }
         if (options.refresh !== false) {
           setTimeout(() => refreshStatus({ preserveDraft:false }).catch(() => {}), 1100);
           setTimeout(() => refreshStatus({ preserveDraft:false }).catch(() => {}), 4500);
@@ -1354,6 +1542,26 @@
         setNotice(error.message, "error");
         return false;
       }
+    }
+
+    function startRunMonitor() {
+      if (state.runMonitorId) clearInterval(state.runMonitorId);
+      state.runMonitorAttempts = 0;
+      state.runMonitorId = setInterval(async () => {
+        state.runMonitorAttempts += 1;
+        try {
+          await refreshStatus({ preserveDraft:false });
+          if (completedTransmissionSpectrum() || !state.desktopOnline || state.runMonitorAttempts > 1440) {
+            clearInterval(state.runMonitorId);
+            state.runMonitorId = 0;
+          }
+        } catch {
+          if (state.runMonitorAttempts > 12) {
+            clearInterval(state.runMonitorId);
+            state.runMonitorId = 0;
+          }
+        }
+      }, 5000);
     }
 
     document.getElementById("loginButton").onclick = login;
