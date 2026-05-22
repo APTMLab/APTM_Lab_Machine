@@ -36,7 +36,7 @@ export default {
       }
 
       if (url.pathname === "/api/login" && request.method === "POST") {
-        return login(request, env);
+        return await login(request, env);
       }
 
       if (url.pathname === "/api/status" && request.method === "GET") {
