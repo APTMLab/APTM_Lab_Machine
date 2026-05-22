@@ -696,6 +696,16 @@
         ScanTypeIndex: 0,
         VisaResources: "",
         StateRatioFrequency: "",
+        StateRatioCh1FrequencyLow: "",
+        StateRatioCh1FrequencyHigh: "",
+        StateRatioCh1FrequencyStep: "",
+        StateRatioCh1FixedFrequency: "",
+        StateRatioCh1FrequencyDivisionIndex: 0,
+        StateRatioCh2FrequencyLow: "",
+        StateRatioCh2FrequencyHigh: "",
+        StateRatioCh2FrequencyStep: "",
+        StateRatioCh2FixedFrequency: "",
+        StateRatioCh2FrequencyDivisionIndex: 0,
         StateRatioLimit: "4",
         StateRatioSweepIndex: 0,
         EpsilonLow: "",
@@ -1257,8 +1267,20 @@
         <label>${label}</label>
         <input id="${id}" inputmode="decimal" value="${esc(p[id])}" ${enabled ? "" : "disabled"}>
       </div>`;
+      const frequencyField = (prefix, label) => `<div class="full">
+        <div style="font-weight:700;margin:4px 0 6px">${label} Frequency Hz</div>
+        <div class="smallGrid">
+          <div><label>Low</label><input id="${prefix}FrequencyLow" inputmode="decimal" value="${esc(p[`${prefix}FrequencyLow`])}"></div>
+          <div><label>High</label><input id="${prefix}FrequencyHigh" inputmode="decimal" value="${esc(p[`${prefix}FrequencyHigh`])}"></div>
+          <div><label>Step/points</label><input id="${prefix}FrequencyStep" inputmode="decimal" value="${esc(p[`${prefix}FrequencyStep`])}"></div>
+          <div><label>Fixed</label><input id="${prefix}FixedFrequency" inputmode="decimal" value="${esc(p[`${prefix}FixedFrequency`] || p.StateRatioFrequency)}"></div>
+        </div>
+        <select id="${prefix}FrequencyDivisionIndex" style="max-width:180px;margin-top:8px">
+          <option value="0" ${selected(p[`${prefix}FrequencyDivisionIndex`],0)}>Divide by step</option>
+          <option value="1" ${selected(p[`${prefix}FrequencyDivisionIndex`],1)}>Divide by points</option>
+        </select>
+      </div>`;
       return `<section class="card"><h2>ε and δ₀ Sweep</h2><div class="content grid">
-        <div><label>Frequency Hz</label><input id="StateRatioFrequency" inputmode="decimal" value="${esc(p.StateRatioFrequency)}"></div>
         <div><label>Amplitude cap Vpp</label><input id="StateRatioLimit" inputmode="decimal" value="${esc(p.StateRatioLimit || "4")}"></div>
         <div>
           <label>Sweep</label>
@@ -1267,6 +1289,8 @@
             <option value="1" ${selected(p.StateRatioSweepIndex,1)}>Sweep δ₀</option>
           </select>
         </div>
+        ${frequencyField("StateRatioCh1", "CH1")}
+        ${frequencyField("StateRatioCh2", "CH2")}
         <div>
           <label>ε divide</label>
           <select id="EpsilonDivisionIndex" ${sweepEpsilon ? "" : "disabled"}>
@@ -1369,9 +1393,11 @@
       if (document.getElementById("ScopeRecordLengthIndex")) p.ScopeRecordLengthIndex = Number(value("ScopeRecordLengthIndex") || 0);
       if (document.getElementById("ScopeTimebaseIndex")) p.ScopeTimebaseIndex = Number(value("ScopeTimebaseIndex") || 0);
 
-      for (const name of ["StateRatioFrequency","StateRatioLimit","EpsilonLow","EpsilonHigh","EpsilonStep","FixedEpsilon","DeltaLow","DeltaHigh","DeltaStep","FixedDelta"]) {
+      for (const name of ["StateRatioFrequency","StateRatioLimit","StateRatioCh1FrequencyLow","StateRatioCh1FrequencyHigh","StateRatioCh1FrequencyStep","StateRatioCh1FixedFrequency","StateRatioCh2FrequencyLow","StateRatioCh2FrequencyHigh","StateRatioCh2FrequencyStep","StateRatioCh2FixedFrequency","EpsilonLow","EpsilonHigh","EpsilonStep","FixedEpsilon","DeltaLow","DeltaHigh","DeltaStep","FixedDelta"]) {
         if (document.getElementById(name)) p[name] = value(name);
       }
+      if (document.getElementById("StateRatioCh1FrequencyDivisionIndex")) p.StateRatioCh1FrequencyDivisionIndex = Number(value("StateRatioCh1FrequencyDivisionIndex") || 0);
+      if (document.getElementById("StateRatioCh2FrequencyDivisionIndex")) p.StateRatioCh2FrequencyDivisionIndex = Number(value("StateRatioCh2FrequencyDivisionIndex") || 0);
       if (document.getElementById("StateRatioSweepIndex")) p.StateRatioSweepIndex = Number(value("StateRatioSweepIndex") || 0);
       if (document.getElementById("EpsilonDivisionIndex")) p.EpsilonDivisionIndex = Number(value("EpsilonDivisionIndex") || 0);
       if (document.getElementById("DeltaDivisionIndex")) p.DeltaDivisionIndex = Number(value("DeltaDivisionIndex") || 0);
