@@ -4,76 +4,155 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>Measurement WorkFlow Remote</title>
-  <meta name="description" content="Remote scan control for Measurement WorkFlow laboratory acquisition software." />
+  <meta name="description" content="Remote scan setup and run control for Measurement WorkFlow." />
   <style>
     :root {
       color-scheme: light;
       --bg:#edf4f9;
       --panel:#ffffff;
+      --panel2:#f8fbff;
       --ink:#0f172a;
       --muted:#64748b;
       --line:#cbd5e1;
       --line2:#dbe5ef;
       --teal:#0f766e;
-      --teal2:#115e59;
+      --teal2:#0d9488;
       --danger:#dc2626;
+      --warn:#f59e0b;
       --soft:#e7f7f4;
+      --shadow:0 16px 36px rgba(15,23,42,.08);
     }
+
     * { box-sizing:border-box; }
+
     body {
       margin:0;
       min-height:100svh;
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
       color:var(--ink);
-      background:radial-gradient(circle at top left,#ffffff 0,#edf4f9 44%,#dbe8f2 100%);
+      background:
+        radial-gradient(circle at 10% 0%,rgba(20,184,166,.16),transparent 32%),
+        radial-gradient(circle at 90% 8%,rgba(59,130,246,.14),transparent 28%),
+        linear-gradient(135deg,#f8fbff 0,#edf4f9 48%,#dce9f4 100%);
     }
-    .shell { max-width:900px; margin:0 auto; padding:18px 14px 104px; }
+
+    .shell {
+      width:min(1240px,100%);
+      margin:0 auto;
+      padding:18px 16px 42px;
+    }
+
     header {
       position:sticky;
       top:0;
-      z-index:10;
-      margin:-18px -14px 14px;
-      padding:16px 14px 13px;
-      background:rgba(248,251,255,.92);
+      z-index:20;
+      margin:-18px -16px 16px;
+      padding:16px max(16px,calc((100vw - 1240px) / 2 + 16px)) 13px;
+      background:rgba(248,251,255,.9);
       border-bottom:1px solid rgba(148,163,184,.34);
       backdrop-filter:blur(16px);
     }
-    h1 { margin:0; font-size:23px; letter-spacing:-.01em; }
+
+    .headerRow {
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:18px;
+    }
+
+    h1 { margin:0; font-size:26px; letter-spacing:-.02em; }
     .sub { color:var(--muted); font-size:13px; margin-top:4px; }
-    .status { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+
+    .status {
+      display:flex;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      gap:8px;
+      min-width:220px;
+      margin-top:2px;
+    }
+
     .pill {
       border:1px solid var(--line);
       background:#fff;
       color:#334155;
       border-radius:999px;
-      padding:7px 10px;
+      padding:7px 11px;
       font-size:12px;
       font-weight:750;
+      line-height:1;
+      white-space:nowrap;
     }
+
     .pill.ready { background:#ecfdf5; color:#115e59; border-color:#5eead4; }
     .pill.bad { background:#fff1f2; color:#991b1b; border-color:#fecaca; }
-    .card {
-      background:rgba(255,255,255,.9);
-      border:1px solid rgba(148,163,184,.4);
-      border-radius:16px;
-      box-shadow:0 14px 34px rgba(15,23,42,.08);
-      overflow:hidden;
-      margin:12px 0;
+    .pill.run { background:#eff6ff; color:#1e40af; border-color:#bfdbfe; }
+
+    .notice {
+      margin-top:11px;
+      display:none;
+      padding:9px 11px;
+      border:1px solid var(--line);
+      background:#fff;
+      color:#334155;
+      border-radius:12px;
+      font-size:13px;
     }
+
+    .notice.show { display:block; }
+    .notice.error { border-color:#fecaca; background:#fff1f2; color:#991b1b; }
+    .notice.ok { border-color:#99f6e4; background:#ecfdf5; color:#115e59; }
+
+    .card {
+      background:rgba(255,255,255,.92);
+      border:1px solid rgba(148,163,184,.42);
+      border-radius:16px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      margin:14px 0;
+    }
+
     .card h2 {
       margin:0;
-      padding:13px 14px;
+      padding:14px 15px;
       border-bottom:1px solid rgba(148,163,184,.28);
       font-size:14px;
       display:flex;
       align-items:center;
       gap:8px;
+      letter-spacing:-.01em;
     }
+
     .card h2::before { content:""; width:4px; height:18px; background:var(--teal); border-radius:4px; }
-    .content { padding:14px; }
+    .content { padding:15px; }
+
+    .pageGrid {
+      display:grid;
+      grid-template-columns:minmax(320px,390px) minmax(0,1fr);
+      gap:16px;
+      align-items:start;
+    }
+
+    .setupGrid {
+      display:grid;
+      grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+      gap:16px;
+      align-items:start;
+    }
+
     .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .triGrid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+    .smallGrid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
     .full { grid-column:1 / -1; }
-    label { display:block; font-size:12px; color:#334155; font-weight:800; margin:0 0 5px; }
+
+    label {
+      display:block;
+      font-size:12px;
+      color:#334155;
+      font-weight:800;
+      margin:0 0 5px;
+    }
+
     input, textarea, select {
       width:100%;
       border:1px solid var(--line);
@@ -82,65 +161,270 @@
       color:var(--ink);
       padding:10px 11px;
       font:inherit;
-      font-size:15px;
+      font-size:14px;
       outline:none;
+      min-height:41px;
     }
+
     textarea {
-      min-height:76px;
+      min-height:82px;
       resize:vertical;
       font-family:ui-monospace,SFMono-Regular,Consolas,monospace;
       font-size:12px;
+      line-height:1.35;
     }
-    input:focus, textarea:focus, select:focus { border-color:var(--teal); box-shadow:0 0 0 3px rgba(15,118,110,.14); }
-    .seg { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-    .seg button, button {
+
+    input:focus, textarea:focus, select:focus {
+      border-color:var(--teal);
+      box-shadow:0 0 0 3px rgba(15,118,110,.14);
+    }
+
+    button {
       border:1px solid var(--line);
       background:#fff;
       border-radius:12px;
-      padding:12px 9px;
+      padding:11px 12px;
       font-weight:850;
       color:var(--ink);
+      cursor:pointer;
+      min-height:42px;
     }
-    .seg button.active, .primary { background:linear-gradient(135deg,var(--teal),#0d9488); color:#fff; border-color:#0d9488; }
+
+    button:hover { border-color:#94a3b8; }
+    button:disabled { opacity:.55; cursor:not-allowed; }
+    .primary { background:linear-gradient(135deg,var(--teal),var(--teal2)); color:#fff; border-color:var(--teal2); }
     .danger { color:#991b1b; border-color:#fecaca; background:#fff1f2; }
-    .muted { color:var(--muted); font-size:13px; line-height:1.35; }
-    .channel { border:1px solid rgba(148,163,184,.36); border-radius:14px; background:#fbfdff; padding:12px; margin:10px 0; }
-    .channelTop { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
-    .channelTitle { font-weight:850; }
-    .switch { display:flex; align-items:center; gap:7px; font-weight:850; font-size:13px; margin:0; }
-    .switch input { width:20px; height:20px; accent-color:var(--teal); }
-    .smallGrid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
-    .scopeCh { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:5px; }
-    .scopeCh label { display:flex; align-items:center; justify-content:center; gap:5px; border:1px solid var(--line); border-radius:10px; background:#fff; padding:8px; margin:0; }
-    .scopeCh input { width:16px; height:16px; accent-color:var(--teal); }
-    .bar {
-      position:fixed;
-      left:0;
-      right:0;
-      bottom:0;
-      z-index:20;
-      background:rgba(248,251,255,.94);
-      border-top:1px solid rgba(148,163,184,.35);
-      backdrop-filter:blur(16px);
-      padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+    .ghost { background:#f8fbff; }
+
+    .seg { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+    .choice {
+      text-align:left;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.88);
+      border-radius:15px;
+      padding:15px;
+      min-height:94px;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      justify-content:center;
+      gap:6px;
+    }
+
+    .choice.active {
+      border-color:var(--teal);
+      background:linear-gradient(180deg,#f0fdfa,#fff);
+      box-shadow:inset 0 0 0 1px rgba(15,118,110,.2);
+    }
+
+    .choiceTitle { font-size:16px; font-weight:850; }
+    .choiceText { color:var(--muted); font-size:12px; line-height:1.35; font-weight:650; }
+    .muted { color:var(--muted); font-size:13px; line-height:1.4; }
+
+    .stepper {
       display:grid;
-      grid-template-columns:1fr 1fr 1fr;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin:0 0 14px;
+    }
+
+    .step {
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:#fff;
+      padding:11px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      color:#475569;
+      font-size:13px;
+      font-weight:850;
+    }
+
+    .step.active { border-color:var(--teal); color:#115e59; background:#f0fdfa; }
+    .step span:first-child { display:flex; align-items:center; gap:8px; }
+    .dot { width:10px; height:10px; border-radius:99px; background:#94a3b8; display:inline-block; }
+    .step.active .dot { background:var(--teal); }
+
+    .resourceBox {
+      border:1px solid rgba(148,163,184,.36);
+      border-radius:14px;
+      background:#fbfdff;
+      padding:12px;
+    }
+
+    .resourceTop {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+      margin-bottom:8px;
+    }
+
+    .countBadge {
+      border:1px solid #99f6e4;
+      background:#ecfdf5;
+      color:#115e59;
+      border-radius:999px;
+      padding:5px 9px;
+      font-size:12px;
+      font-weight:850;
+      white-space:nowrap;
+    }
+
+    .actionRow {
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:12px;
+    }
+
+    .actionRow button { flex:1 1 150px; }
+
+    .channel {
+      border:1px solid rgba(148,163,184,.36);
+      border-radius:15px;
+      background:#fbfdff;
+      padding:12px;
+      margin:11px 0;
+    }
+
+    .channelTop {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:10px;
+    }
+
+    .channelTitle {
+      font-weight:850;
+      display:flex;
+      align-items:center;
       gap:8px;
     }
+
+    .channelTitle::before {
+      content:"";
+      width:4px;
+      height:16px;
+      background:var(--teal);
+      border-radius:99px;
+      display:inline-block;
+    }
+
+    .switch {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-weight:850;
+      font-size:13px;
+      margin:0;
+      border:1px solid #bfdbfe;
+      background:#f8fbff;
+      border-radius:999px;
+      padding:6px 10px;
+      min-width:max-content;
+    }
+
+    .switch input {
+      appearance:none;
+      width:34px;
+      min-height:20px;
+      height:20px;
+      border-radius:999px;
+      background:#dbeafe;
+      border:1px solid #bfdbfe;
+      position:relative;
+      padding:0;
+      cursor:pointer;
+    }
+
+    .switch input::before {
+      content:"";
+      position:absolute;
+      width:14px;
+      height:14px;
+      border-radius:50%;
+      left:2px;
+      top:2px;
+      background:#fff;
+      box-shadow:0 1px 3px rgba(15,23,42,.22);
+      transition:transform .18s ease;
+    }
+
+    .switch input:checked { background:var(--teal); border-color:var(--teal); }
+    .switch input:checked::before { transform:translateX(14px); }
+
+    .scopeCh {
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:8px;
+      margin-top:6px;
+    }
+
+    .scopeCh label {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:6px;
+      border:1px solid var(--line);
+      border-radius:10px;
+      background:#fff;
+      padding:8px;
+      margin:0;
+    }
+
+    .scopeCh input { width:16px; min-height:16px; height:16px; accent-color:var(--teal); padding:0; }
+
+    .compactList {
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:8px;
+    }
+
+    .mini {
+      border:1px solid var(--line2);
+      background:#f8fbff;
+      border-radius:12px;
+      padding:10px;
+    }
+
+    .mini b { display:block; font-size:13px; margin-bottom:4px; }
+
     .hidden { display:none !important; }
-    @media (max-width:620px) {
-      .grid, .smallGrid { grid-template-columns:1fr; }
-      .bar { grid-template-columns:1fr 1fr; }
-      .bar .primary { grid-column:1 / -1; }
+
+    @media (max-width:900px) {
+      .pageGrid, .setupGrid { grid-template-columns:1fr; }
+      .headerRow { flex-direction:column; }
+      .status { justify-content:flex-start; min-width:0; }
+    }
+
+    @media (max-width:640px) {
+      .shell { padding:14px 10px 28px; }
+      header { margin:-14px -10px 12px; padding:14px 10px 12px; }
+      h1 { font-size:22px; }
+      .grid, .triGrid, .smallGrid, .seg, .stepper, .compactList { grid-template-columns:1fr; }
+      .scopeCh { grid-template-columns:1fr 1fr; }
+      .content { padding:12px; }
+      .card { border-radius:14px; margin:11px 0; }
+      .choice { min-height:84px; }
     }
   </style>
 </head>
 <body>
   <div class="shell">
     <header>
-      <h1>Measurement WorkFlow Remote</h1>
-      <div class="sub">Remote scan input and run control</div>
-      <div id="statusPills" class="status"></div>
+      <div class="headerRow">
+        <div>
+          <h1>Measurement WorkFlow Remote</h1>
+          <div class="sub">Remote setup, scan input, and run control</div>
+        </div>
+        <div id="statusPills" class="status"></div>
+      </div>
+      <div id="notice" class="notice"></div>
     </header>
 
     <section id="loginCard" class="card">
@@ -160,57 +444,40 @@
         </div>
         <button id="loginButton" class="primary full">Login</button>
         <button id="clearLoginButton" class="full" type="button">Clear Saved Login</button>
-        <div id="loginMessage" class="muted full">Use the credentials configured in the relay worker.</div>
+        <div id="loginMessage" class="muted full">Use the credentials configured in Cloudflare.</div>
       </div>
     </section>
 
     <main id="app" class="hidden"></main>
   </div>
 
-  <div id="actionBar" class="bar hidden">
-    <button id="applyButton">Apply</button>
-    <button id="pauseButton">Pause</button>
-    <button id="runButton" class="primary">Apply & Run</button>
-    <button id="stopButton" class="danger">Stop</button>
-    <button id="outputsOffButton" class="danger">Outputs Off</button>
-    <button id="resetButton">Reset Inputs</button>
-    <button id="logoutButton">Logout</button>
-  </div>
-
   <script>
-    const settingsKey = "measurement-workflow-remote-settings";
-    const tokenKey = "measurement-workflow-remote-token";
+    // Easy text/config edits live here.
+    const appName = "Measurement WorkFlow Remote";
     const defaultRelayUrl = location.hostname.endsWith("github.io")
       ? "https://measurement-workflow-relay.hk2799.workers.dev"
       : location.origin;
     const defaultLabId = "aptm-lab";
+    const defaultDataFolder = "D:\\Polytec_Software_Code\\Data";
+
+    const settingsKey = "measurement-workflow-remote-settings";
+    const tokenKey = "measurement-workflow-remote-token";
+    const viewKey = "measurement-workflow-remote-view";
+
+    const modes = ["Sweep frequency", "Sweep amplitude", "Sweep phase", "Fixed condition"];
+    const waveforms = ["Sine", "Square", "Ramp", "Pulse", "Noise"];
+    const avgOptions = ["6 (64)", "7 (128)", "8 (256)", "9 (512)"];
+    const recordOptions = ["1e3", "1e4", "1e5"];
+    const timebaseOptions = ["Fixed FFT window", "Follow frequency"];
+
     const state = {
       token: localStorage.getItem(tokenKey) || "",
       relayUrl: defaultRelayUrl,
       labId: defaultLabId,
+      view: localStorage.getItem(viewKey) || "setup",
       appState: null,
       preset: null
     };
-
-    const modes = ["Sweep frequency", "Sweep amplitude", "Sweep phase", "Fixed condition"];
-    const waveforms = ["Sine", "Square", "Ramp", "Pulse", "Noise"];
-
-    function loadSavedSettings() {
-      try {
-        const saved = JSON.parse(localStorage.getItem(settingsKey) || "{}");
-        state.relayUrl = saved.relayUrl || defaultRelayUrl;
-        state.labId = saved.labId || defaultLabId;
-        document.getElementById("relayUrl").value = state.relayUrl;
-        document.getElementById("labId").value = state.labId;
-      } catch {}
-    }
-
-    function saveSettings() {
-      localStorage.setItem(settingsKey, JSON.stringify({
-        relayUrl: state.relayUrl,
-        labId: state.labId
-      }));
-    }
 
     function esc(value) {
       return String(value ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
@@ -220,6 +487,31 @@
     function selected(actual, expected) { return Number(actual) === Number(expected) ? "selected" : ""; }
     function value(id) { return document.getElementById(id)?.value ?? ""; }
     function bool(id) { return document.getElementById(id)?.checked ?? false; }
+    function countLines(text) { return String(text || "").split(/\r?\n/).map(x => x.trim()).filter(Boolean).length; }
+    function keepFolder(value) { return String(value || "").trim() || defaultDataFolder; }
+
+    function setNotice(message, kind = "") {
+      const el = document.getElementById("notice");
+      el.textContent = message || "";
+      el.className = "notice" + (message ? " show" : "") + (kind ? " " + kind : "");
+    }
+
+    function loadSavedSettings() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(settingsKey) || "{}");
+        state.relayUrl = saved.relayUrl || defaultRelayUrl;
+        state.labId = saved.labId || defaultLabId;
+      } catch {}
+      document.getElementById("relayUrl").value = state.relayUrl;
+      document.getElementById("labId").value = state.labId;
+    }
+
+    function saveSettings() {
+      localStorage.setItem(settingsKey, JSON.stringify({
+        relayUrl: state.relayUrl,
+        labId: state.labId
+      }));
+    }
 
     async function api(path, options = {}) {
       const root = state.relayUrl.replace(/\/+$/, "");
@@ -234,7 +526,7 @@
       } catch {
         payload = { success:false, message:raw || response.statusText };
       }
-      if (!response.ok || payload.success === false) {
+      if (!response.ok || payload?.success === false) {
         throw new Error(payload?.message || response.statusText);
       }
 
@@ -249,6 +541,7 @@
         document.getElementById("loginMessage").textContent = "Relay URL, Lab ID, and password are required.";
         return;
       }
+
       saveSettings();
       try {
         const payload = await api("/api/login", {
@@ -270,31 +563,31 @@
       localStorage.removeItem(tokenKey);
       document.getElementById("loginCard").classList.remove("hidden");
       document.getElementById("app").classList.add("hidden");
-      document.getElementById("actionBar").classList.add("hidden");
-      document.getElementById("loginMessage").textContent = "Saved login cleared. Enter the current password.";
+      setNotice("");
       setPills();
+      document.getElementById("loginMessage").textContent = "Saved login cleared. Enter the current password.";
     }
 
     async function refreshStatus() {
       const payload = await api("/api/status?labId=" + encodeURIComponent(state.labId));
       state.appState = payload.status?.appState || null;
-      state.preset = state.appState?.preset || state.preset || defaultPreset();
+      state.preset = normalizePreset(state.appState?.preset || state.preset || defaultPreset());
       render();
     }
 
     function showApp() {
       document.getElementById("loginCard").classList.add("hidden");
       document.getElementById("app").classList.remove("hidden");
-      document.getElementById("actionBar").classList.remove("hidden");
+      render();
     }
 
     function defaultPreset() {
       return {
         Equipment: "LaserDopplerVibrometer",
-        OutputRoot: "",
+        OutputRoot: defaultDataFolder,
         MassCount: "",
         SettleSeconds: "10",
-        ScopeOutputRoot: "",
+        ScopeOutputRoot: defaultDataFolder,
         OscilloscopeResources: "",
         ScopeGeneratorResources: "",
         ScopeExperimentSettleSeconds: "10",
@@ -305,82 +598,262 @@
         ModeIndex: 0,
         ScanTypeIndex: 0,
         VisaResources: "",
+        StateRatioFrequency: "",
+        StateRatioLimit: "4",
+        StateRatioSweepIndex: 0,
+        EpsilonLow: "",
+        EpsilonHigh: "",
+        EpsilonStep: "",
+        FixedEpsilon: "",
+        DeltaLow: "",
+        DeltaHigh: "",
+        DeltaStep: "",
+        FixedDelta: "",
+        EpsilonDivisionIndex: 0,
+        DeltaDivisionIndex: 0,
+        SkipCompletedScans: false,
         Channels: [],
         FunctionGenerators: [],
         ScopeChannels: []
       };
     }
 
+    function normalizePreset(raw) {
+      const base = defaultPreset();
+      const preset = { ...base, ...(raw || {}) };
+      preset.OutputRoot = keepFolder(preset.OutputRoot);
+      preset.ScopeOutputRoot = keepFolder(preset.ScopeOutputRoot);
+      preset.SettleSeconds = preset.SettleSeconds || "10";
+      preset.ScopeExperimentSettleSeconds = preset.ScopeExperimentSettleSeconds || "10";
+      preset.ScopeSettleSeconds = preset.ScopeSettleSeconds || "1";
+      preset.StateRatioLimit = preset.StateRatioLimit || "4";
+      preset.Channels = Array.isArray(preset.Channels) ? preset.Channels : [];
+      preset.FunctionGenerators = Array.isArray(preset.FunctionGenerators) ? preset.FunctionGenerators : [];
+      preset.ScopeChannels = Array.isArray(preset.ScopeChannels) ? preset.ScopeChannels : [];
+      return preset;
+    }
+
     function setPills() {
       const ready = state.appState?.ready === true;
       const running = state.appState?.running === true;
-      const equipment = state.appState?.equipmentLabel || state.preset?.Equipment || "Scan";
+      const equipment = state.appState?.equipmentLabel || equipmentLabel(state.preset?.Equipment) || "Scan";
+      const last = state.appState?.lastCommand?.message || "";
       document.getElementById("statusPills").innerHTML = `
         <span class="pill ${ready ? "ready" : "bad"}">${ready ? "Ready" : "Not ready"}</span>
-        <span class="pill">${running ? "Running" : "Idle"}</span>
+        <span class="pill ${running ? "run" : ""}">${running ? "Running" : "Idle"}</span>
         <span class="pill">${esc(equipment)}</span>
+        ${last ? `<span class="pill">${esc(last)}</span>` : ""}
       `;
+    }
+
+    function equipmentLabel(equipment) {
+      return equipment === "Oscilloscope" ? "Oscilloscope" : "Laser Doppler Vibrometer";
+    }
+
+    function currentFgCount(p = state.preset) {
+      const resourceText = p?.Equipment === "Oscilloscope" ? p.ScopeGeneratorResources : p.VisaResources;
+      return Math.max(1, Math.min(5, state.appState?.activeFunctionGenerators || countLines(resourceText) || 1));
+    }
+
+    function currentScopeCount(p = state.preset) {
+      return Math.max(1, Math.min(5, state.appState?.activeOscilloscopes || countLines(p?.OscilloscopeResources) || 1));
     }
 
     function render() {
-      state.preset = state.preset || defaultPreset();
+      state.preset = normalizePreset(state.preset || defaultPreset());
       setPills();
-      const p = state.preset;
-      const isScope = p.Equipment === "Oscilloscope";
       document.getElementById("app").innerHTML = `
-        <section class="card"><h2>Workflow</h2><div class="content">
-          <div class="seg">
-            <button id="scopeMode" class="${isScope ? "active" : ""}">Oscilloscope</button>
-            <button id="ldvMode" class="${!isScope ? "active" : ""}">Laser Doppler Vibrometer</button>
-          </div>
-          <div class="muted" style="margin-top:10px">${esc(state.appState?.message || state.appState?.status || "Waiting for desktop app status.")}</div>
-        </div></section>
-        ${isScope ? renderScopeSetup(p) : renderLdvSetup(p)}
-        ${renderFunctionGenerators(p)}
-        ${isScope ? renderScopeAcquisition(p) : renderLdvAcquisition()}
+        ${renderStepper()}
+        ${state.view === "setup" ? renderSetupPage(state.preset) : renderInputPage(state.preset)}
       `;
-      document.getElementById("scopeMode").onclick = () => { state.preset = collect(); state.preset.Equipment = "Oscilloscope"; render(); };
-      document.getElementById("ldvMode").onclick = () => { state.preset = collect(); state.preset.Equipment = "LaserDopplerVibrometer"; render(); };
+      wirePage();
+    }
+
+    function renderStepper() {
+      return `<div class="stepper">
+        <button class="step ${state.view === "setup" ? "active" : ""}" data-view="setup">
+          <span><span class="dot"></span>Setup and detect</span><span>1</span>
+        </button>
+        <button class="step ${state.view === "inputs" ? "active" : ""}" data-view="inputs">
+          <span><span class="dot"></span>Scan inputs</span><span>2</span>
+        </button>
+      </div>`;
+    }
+
+    function renderSetupPage(p) {
+      const isScope = p.Equipment === "Oscilloscope";
+      return `<div class="setupGrid">
+        <section class="card">
+          <h2>Choose Workflow</h2>
+          <div class="content">
+            <div class="seg">
+              <button class="choice ${isScope ? "active" : ""}" data-equipment="Oscilloscope">
+                <span class="choiceTitle">Oscilloscope</span>
+                <span class="choiceText">Tektronix acquisition with B&K 4055B function-generator sweep control.</span>
+              </button>
+              <button class="choice ${!isScope ? "active" : ""}" data-equipment="LaserDopplerVibrometer">
+                <span class="choiceTitle">Laser Doppler Vibrometer</span>
+                <span class="choiceText">PSV-680F QTec data workflow with external or PSV generator setup.</span>
+              </button>
+            </div>
+            <div class="muted" style="margin-top:12px">${esc(state.appState?.message || state.appState?.status || "Open the desktop app and enable Cloud Relay before sending commands.")}</div>
+          </div>
+        </section>
+        ${isScope ? renderScopeSetup(p) : renderLdvSetup(p)}
+      </div>`;
     }
 
     function renderLdvSetup(p) {
-      return `<section class="card"><h2>LDV Setup</h2><div class="content grid">
-        <div class="full"><label>Output folder</label><input id="OutputRoot" value="${esc(p.OutputRoot)}"></div>
-        <div><label>Mass count</label><input id="MassCount" inputmode="numeric" value="${esc(p.MassCount)}"></div>
-        <div><label>Settle seconds</label><input id="SettleSeconds" inputmode="decimal" value="${esc(p.SettleSeconds || "10")}"></div>
-        <div><label>Generator mode</label><select id="ModeIndex"><option value="0" ${selected(p.ModeIndex,0)}>External FG</option><option value="1" ${selected(p.ModeIndex,1)}>PSV internal</option></select></div>
-        <div><label>Scan type</label><select id="ScanTypeIndex"><option value="0" ${selected(p.ScanTypeIndex,0)}>Frequency / amplitude / phase</option><option value="1" ${selected(p.ScanTypeIndex,1)}>Epsilon / delta_0</option></select></div>
-        <div class="full"><label>External FG VISA resources</label><textarea id="VisaResources">${esc(p.VisaResources)}</textarea></div>
-        <div><label>Frequency Hz</label><input id="StateRatioFrequency" inputmode="decimal" value="${esc(p.StateRatioFrequency)}"></div>
-        <div><label>Epsilon low</label><input id="EpsilonLow" inputmode="decimal" value="${esc(p.EpsilonLow)}"></div>
-        <div><label>Epsilon high</label><input id="EpsilonHigh" inputmode="decimal" value="${esc(p.EpsilonHigh)}"></div>
-        <div><label>Epsilon step/points</label><input id="EpsilonStep" inputmode="decimal" value="${esc(p.EpsilonStep)}"></div>
-        <div><label>Delta low</label><input id="DeltaLow" inputmode="decimal" value="${esc(p.DeltaLow)}"></div>
-        <div><label>Delta high</label><input id="DeltaHigh" inputmode="decimal" value="${esc(p.DeltaHigh)}"></div>
-        <div><label>Delta step/points</label><input id="DeltaStep" inputmode="decimal" value="${esc(p.DeltaStep)}"></div>
-        <div><label>Fixed epsilon</label><input id="FixedEpsilon" inputmode="decimal" value="${esc(p.FixedEpsilon)}"></div>
-        <div><label>Fixed delta</label><input id="FixedDelta" inputmode="decimal" value="${esc(p.FixedDelta)}"></div>
-      </div></section>`;
+      return `<section class="card">
+        <h2>LDV Setup</h2>
+        <div class="content grid">
+          <div class="full">
+            <label>Output folder</label>
+            <input id="OutputRoot" value="${esc(p.OutputRoot)}">
+          </div>
+          <div>
+            <label>Mass count</label>
+            <input id="MassCount" inputmode="numeric" value="${esc(p.MassCount)}">
+          </div>
+          <div>
+            <label>Experiment settle (s)</label>
+            <input id="SettleSeconds" inputmode="decimal" value="${esc(p.SettleSeconds || "10")}">
+          </div>
+          <div>
+            <label>Generator mode</label>
+            <select id="ModeIndex">
+              <option value="0" ${selected(p.ModeIndex,0)}>External function generator</option>
+              <option value="1" ${selected(p.ModeIndex,1)}>PSV internal generator</option>
+            </select>
+          </div>
+          <div>
+            <label>Scan type</label>
+            <select id="ScanTypeIndex">
+              <option value="0" ${selected(p.ScanTypeIndex,0)}>Frequency, amplitude, phase</option>
+              <option value="1" ${selected(p.ScanTypeIndex,1)}>Epsilon and delta_0</option>
+            </select>
+          </div>
+          <div class="full resourceBox">
+            <div class="resourceTop">
+              <label style="margin:0">External generator VISA resources</label>
+              <span class="countBadge">${countLines(p.VisaResources)} found</span>
+            </div>
+            <textarea id="VisaResources">${esc(p.VisaResources)}</textarea>
+            <div class="actionRow">
+              <button class="ghost" data-command="detect-generators">Detect Function Generators</button>
+              <button class="primary" data-next>Apply Setup / Continue</button>
+            </div>
+          </div>
+          <div>
+            <label>PSV measurement mode</label>
+            <input value="${esc(formatLdvMode(p.LdvAcquisitionMode))}" readonly>
+          </div>
+          <div>
+            <label>Data root</label>
+            <input value="${esc(defaultDataFolder)}" readonly>
+          </div>
+        </div>
+      </section>`;
     }
 
     function renderScopeSetup(p) {
-      return `<section class="card"><h2>Oscilloscope Setup</h2><div class="content grid">
-        <div class="full"><label>Output folder</label><input id="ScopeOutputRoot" value="${esc(p.ScopeOutputRoot)}"></div>
-        <div class="full"><label>Oscilloscope VISA resources</label><textarea id="OscilloscopeResources">${esc(p.OscilloscopeResources)}</textarea></div>
-        <div class="full"><label>Function generator VISA resources</label><textarea id="ScopeGeneratorResources">${esc(p.ScopeGeneratorResources)}</textarea></div>
-      </div></section>`;
+      return `<section class="card">
+        <h2>Oscilloscope Setup</h2>
+        <div class="content grid">
+          <div class="full">
+            <label>Output folder</label>
+            <input id="ScopeOutputRoot" value="${esc(p.ScopeOutputRoot)}">
+          </div>
+          <div class="full resourceBox">
+            <div class="resourceTop">
+              <label style="margin:0">Oscilloscope VISA resources</label>
+              <span class="countBadge">${countLines(p.OscilloscopeResources)} found</span>
+            </div>
+            <textarea id="OscilloscopeResources">${esc(p.OscilloscopeResources)}</textarea>
+            <div class="actionRow">
+              <button class="ghost" data-command="detect-oscilloscopes">Detect Oscilloscopes</button>
+            </div>
+          </div>
+          <div class="full resourceBox">
+            <div class="resourceTop">
+              <label style="margin:0">Function generator VISA resources</label>
+              <span class="countBadge">${countLines(p.ScopeGeneratorResources)} found</span>
+            </div>
+            <textarea id="ScopeGeneratorResources">${esc(p.ScopeGeneratorResources)}</textarea>
+            <div class="actionRow">
+              <button class="ghost" data-command="detect-scope-generators">Detect Function Generators</button>
+              <button class="ghost" data-command="detect-all">Detect Both</button>
+              <button class="primary" data-next>Apply Setup / Continue</button>
+            </div>
+          </div>
+          <div>
+            <label>Experiment settle (s)</label>
+            <input id="ScopeExperimentSettleSeconds" inputmode="decimal" value="${esc(p.ScopeExperimentSettleSeconds || "10")}">
+          </div>
+          <div>
+            <label>Scope settle (s)</label>
+            <input id="ScopeSettleSeconds" inputmode="decimal" value="${esc(p.ScopeSettleSeconds || "1")}">
+          </div>
+          <div>
+            <label>Averaging</label>
+            <select id="ScopeAverageIndex">${avgOptions.map((item,i) => `<option value="${i}" ${selected(p.ScopeAverageIndex,i)}>${item}</option>`).join("")}</select>
+          </div>
+          <div>
+            <label>Record length</label>
+            <select id="ScopeRecordLengthIndex">${recordOptions.map((item,i) => `<option value="${i}" ${selected(p.ScopeRecordLengthIndex,i)}>${item}</option>`).join("")}</select>
+          </div>
+          <div class="full">
+            <label>Timebase mode</label>
+            <select id="ScopeTimebaseIndex">${timebaseOptions.map((item,i) => `<option value="${i}" ${selected(p.ScopeTimebaseIndex,i)}>${item}</option>`).join("")}</select>
+          </div>
+        </div>
+      </section>`;
+    }
+
+    function renderInputPage(p) {
+      const isScope = p.Equipment === "Oscilloscope";
+      return `<div class="pageGrid">
+        <div>
+          <section class="card">
+            <h2>Run Control</h2>
+            <div class="content">
+              <div class="compactList">
+                <div class="mini"><b>Workflow</b><span class="muted">${esc(equipmentLabel(p.Equipment))}</span></div>
+                <div class="mini"><b>Output</b><span class="muted">${esc(isScope ? p.ScopeOutputRoot : p.OutputRoot)}</span></div>
+                <div class="mini"><b>Function generators</b><span class="muted">${currentFgCount(p)}</span></div>
+                <div class="mini"><b>${isScope ? "Oscilloscopes" : "Masses"}</b><span class="muted">${isScope ? currentScopeCount(p) : esc(p.MassCount || "Not set")}</span></div>
+              </div>
+              <div class="actionRow">
+                <button data-view="setup">Back to Setup</button>
+                <button data-refresh>Refresh</button>
+                <button data-command="apply">Apply</button>
+                <button class="primary" data-command="run">Apply & Run</button>
+                <button data-command="pause">Pause</button>
+                <button class="danger" data-command="stop">Stop</button>
+                <button class="danger" data-command="outputs-off">Outputs Off</button>
+                <button data-reset>Reset Inputs</button>
+              </div>
+            </div>
+          </section>
+          ${isScope ? renderScopeAcquisition(p) : renderLdvAcquisition(p)}
+        </div>
+        <div>
+          ${renderFunctionGenerators(p)}
+        </div>
+      </div>`;
     }
 
     function renderFunctionGenerators(p) {
-      const fgCount = Math.max(1, Math.min(5, state.appState?.activeFunctionGenerators || 1));
+      const fgCount = currentFgCount(p);
       const channels = p.Channels || [];
       const outputs = p.FunctionGenerators || [];
       let html = `<section class="card"><h2>Function Generators</h2><div class="content">`;
       for (let fg = 0; fg < fgCount; fg++) {
         const output = outputs[fg] || {};
-        html += `<div class="channel"><div class="channelTop"><div class="channelTitle">Function Generator ${fg + 1}</div></div>
+        html += `<div class="channel">
+          <div class="channelTop"><div class="channelTitle">B&K Precision 4055B FG ${fg + 1}</div></div>
           <div class="grid">
-            <div><label>Waveform</label><select id="fg${fg}_WaveformIndex">${waveforms.map((w,i) => `<option value="${i}" ${selected(output.WaveformIndex,i)}>${w}</option>`).join("")}</select></div>
+            <div class="full"><label>Waveform</label><select id="fg${fg}_WaveformIndex">${waveforms.map((w,i) => `<option value="${i}" ${selected(output.WaveformIndex,i)}>${w}</option>`).join("")}</select></div>
             <label class="switch"><input id="fg${fg}_CouplingEnabled" type="checkbox" ${checked(output.CouplingEnabled)}> CH coupling</label>
             <div><label>Source CH</label><select id="fg${fg}_SourceChannelIndex"><option value="0" ${selected(output.SourceChannelIndex,0)}>CH1</option><option value="1" ${selected(output.SourceChannelIndex,1)}>CH2</option></select></div>
             <label class="switch"><input id="fg${fg}_WaveCombineEnabled" type="checkbox" ${checked(output.WaveCombineEnabled)}> Wave combine</label>
@@ -394,9 +867,13 @@
 
     function renderChannel(index, channel) {
       return `<div class="channel">
-        <div class="channelTop"><div class="channelTitle">CH${(index % 2) + 1}</div><label class="switch"><input id="ch${index}_Used" type="checkbox" ${checked(channel.Used)}> Use</label></div>
-        <label>Mode</label><select id="ch${index}_ModeIndex">${modes.map((m,i) => `<option value="${i}" ${selected(channel.ModeIndex,i)}>${m}</option>`).join("")}</select>
-        <div class="smallGrid">
+        <div class="channelTop">
+          <div class="channelTitle">CH${(index % 2) + 1}</div>
+          <label class="switch"><input id="ch${index}_Used" type="checkbox" ${checked(channel.Used)}> Use</label>
+        </div>
+        <label>Mode</label>
+        <select id="ch${index}_ModeIndex">${modes.map((m,i) => `<option value="${i}" ${selected(channel.ModeIndex,i)}>${m}</option>`).join("")}</select>
+        <div class="smallGrid" style="margin-top:9px">
           <div><label>Freq low</label><input id="ch${index}_FrequencyLow" inputmode="decimal" value="${esc(channel.FrequencyLow)}"></div>
           <div><label>Freq high</label><input id="ch${index}_FrequencyHigh" inputmode="decimal" value="${esc(channel.FrequencyHigh)}"></div>
           <div><label>Freq step</label><input id="ch${index}_FrequencyStep" inputmode="decimal" value="${esc(channel.FrequencyStep)}"></div>
@@ -413,113 +890,211 @@
       </div>`;
     }
 
-    function renderLdvAcquisition() {
-      return `<section class="card"><h2>PSV</h2><div class="content"><div class="muted">Read PSV settings on the desktop app before remote LDV runs. The remote page preserves the detected Time or FFT mode.</div></div></section>`;
+    function renderLdvAcquisition(p) {
+      return `<section class="card"><h2>Laser Doppler Vibrometer</h2><div class="content grid">
+        <div>
+          <label>PSV mode</label>
+          <input value="${esc(formatLdvMode(p.LdvAcquisitionMode))}" readonly>
+        </div>
+        <div>
+          <label>Skip saved scans</label>
+          <label class="switch"><input id="SkipCompletedScans" type="checkbox" ${checked(p.SkipCompletedScans)}> Use skip</label>
+        </div>
+        <div><label>State-ratio frequency Hz</label><input id="StateRatioFrequency" inputmode="decimal" value="${esc(p.StateRatioFrequency)}"></div>
+        <div><label>Amplitude cap Vpp</label><input id="StateRatioLimit" inputmode="decimal" value="${esc(p.StateRatioLimit || "4")}"></div>
+        <div>
+          <label>Epsilon/delta sweep</label>
+          <select id="StateRatioSweepIndex">
+            <option value="0" ${selected(p.StateRatioSweepIndex,0)}>Sweep epsilon</option>
+            <option value="1" ${selected(p.StateRatioSweepIndex,1)}>Sweep delta_0</option>
+          </select>
+        </div>
+        <div>
+          <label>Epsilon divide</label>
+          <select id="EpsilonDivisionIndex">
+            <option value="0" ${selected(p.EpsilonDivisionIndex,0)}>Divide by step</option>
+            <option value="1" ${selected(p.EpsilonDivisionIndex,1)}>Divide by points</option>
+          </select>
+        </div>
+        <div>
+          <label>Delta divide</label>
+          <select id="DeltaDivisionIndex">
+            <option value="0" ${selected(p.DeltaDivisionIndex,0)}>Divide by step</option>
+            <option value="1" ${selected(p.DeltaDivisionIndex,1)}>Divide by points</option>
+          </select>
+        </div>
+        <div><label>Epsilon low</label><input id="EpsilonLow" inputmode="decimal" value="${esc(p.EpsilonLow)}"></div>
+        <div><label>Epsilon high</label><input id="EpsilonHigh" inputmode="decimal" value="${esc(p.EpsilonHigh)}"></div>
+        <div><label>Epsilon step/points</label><input id="EpsilonStep" inputmode="decimal" value="${esc(p.EpsilonStep)}"></div>
+        <div><label>Fixed epsilon</label><input id="FixedEpsilon" inputmode="decimal" value="${esc(p.FixedEpsilon)}"></div>
+        <div><label>Delta low</label><input id="DeltaLow" inputmode="decimal" value="${esc(p.DeltaLow)}"></div>
+        <div><label>Delta high</label><input id="DeltaHigh" inputmode="decimal" value="${esc(p.DeltaHigh)}"></div>
+        <div><label>Delta step/points</label><input id="DeltaStep" inputmode="decimal" value="${esc(p.DeltaStep)}"></div>
+        <div><label>Fixed delta</label><input id="FixedDelta" inputmode="decimal" value="${esc(p.FixedDelta)}"></div>
+      </div></section>`;
     }
 
     function renderScopeAcquisition(p) {
-      const count = Math.max(1, Math.min(5, state.appState?.activeOscilloscopes || 1));
+      const count = currentScopeCount(p);
       const scopes = p.ScopeChannels || [];
-      let html = `<section class="card"><h2>Oscilloscope Acquisition</h2><div class="content grid">
-        <div><label>Experiment settle (s)</label><input id="ScopeExperimentSettleSeconds" inputmode="decimal" value="${esc(p.ScopeExperimentSettleSeconds || "10")}"></div>
-        <div><label>Scope settle (s)</label><input id="ScopeSettleSeconds" inputmode="decimal" value="${esc(p.ScopeSettleSeconds || "1")}"></div>
-        <div><label>Averaging</label><select id="ScopeAverageIndex"><option value="0" ${selected(p.ScopeAverageIndex,0)}>6 (64)</option><option value="1" ${selected(p.ScopeAverageIndex,1)}>7 (128)</option><option value="2" ${selected(p.ScopeAverageIndex,2)}>8 (256)</option><option value="3" ${selected(p.ScopeAverageIndex,3)}>9 (512)</option></select></div>
-        <div><label>Record length</label><select id="ScopeRecordLengthIndex"><option value="0" ${selected(p.ScopeRecordLengthIndex,0)}>1e3</option><option value="1" ${selected(p.ScopeRecordLengthIndex,1)}>1e4</option><option value="2" ${selected(p.ScopeRecordLengthIndex,2)}>1e5</option></select></div>
-        <div><label>Timebase</label><select id="ScopeTimebaseIndex"><option value="0" ${selected(p.ScopeTimebaseIndex,0)}>Fixed FFT window</option><option value="1" ${selected(p.ScopeTimebaseIndex,1)}>Follow frequency</option></select></div>
-      </div><div class="content">`;
+      let html = `<section class="card"><h2>Oscilloscopes</h2><div class="content">`;
       for (let i = 0; i < count; i++) {
         const scope = scopes[i] || { Channels: [], TriggerIndex: 0 };
-        html += `<div class="channel"><div class="channelTitle">Scope ${i + 1}</div><div class="scopeCh">`;
-        for (let ch = 0; ch < 4; ch++) html += `<label><input id="scope${i}_ch${ch}" type="checkbox" ${checked((scope.Channels || [])[ch])}> CH${ch + 1}</label>`;
-        html += `</div><label style="margin-top:10px">Trigger</label><select id="scope${i}_TriggerIndex"><option value="0" ${selected(scope.TriggerIndex,0)}>CH1</option><option value="1" ${selected(scope.TriggerIndex,1)}>CH2</option><option value="2" ${selected(scope.TriggerIndex,2)}>CH3</option><option value="3" ${selected(scope.TriggerIndex,3)}>CH4</option></select></div>`;
+        html += `<div class="channel">
+          <div class="channelTitle">Tektronix Scope ${i + 1}</div>
+          <label style="margin-top:10px">Signal channels</label>
+          <div class="scopeCh">`;
+        for (let ch = 0; ch < 4; ch++) {
+          html += `<label><input id="scope${i}_ch${ch}" type="checkbox" ${checked((scope.Channels || [])[ch])}> CH${ch + 1}</label>`;
+        }
+        html += `</div>
+          <label style="margin-top:10px">Trigger</label>
+          <select id="scope${i}_TriggerIndex">
+            <option value="0" ${selected(scope.TriggerIndex,0)}>CH1</option>
+            <option value="1" ${selected(scope.TriggerIndex,1)}>CH2</option>
+            <option value="2" ${selected(scope.TriggerIndex,2)}>CH3</option>
+            <option value="3" ${selected(scope.TriggerIndex,3)}>CH4</option>
+          </select>
+        </div>`;
       }
       return html + `</div></section>`;
     }
 
+    function formatLdvMode(value) {
+      return String(value || "").toLowerCase().includes("fft") ? "FFT" : "Time";
+    }
+
     function collect() {
-      const p = JSON.parse(JSON.stringify(state.preset || defaultPreset()));
-      p.Equipment = document.getElementById("scopeMode")?.classList.contains("active") ? "Oscilloscope" : "LaserDopplerVibrometer";
-      if (p.Equipment === "Oscilloscope") {
-        p.ScopeOutputRoot = value("ScopeOutputRoot");
-        p.OscilloscopeResources = value("OscilloscopeResources");
-        p.ScopeGeneratorResources = value("ScopeGeneratorResources");
-        p.ScopeExperimentSettleSeconds = value("ScopeExperimentSettleSeconds");
-        p.ScopeSettleSeconds = value("ScopeSettleSeconds");
-        p.ScopeAverageIndex = Number(value("ScopeAverageIndex") || 0);
-        p.ScopeRecordLengthIndex = Number(value("ScopeRecordLengthIndex") || 0);
-        p.ScopeTimebaseIndex = Number(value("ScopeTimebaseIndex") || 0);
-        p.ScopeChannels = p.ScopeChannels || [];
-        const scopeCount = Math.max(1, Math.min(5, state.appState?.activeOscilloscopes || 1));
-        for (let i = 0; i < scopeCount; i++) {
-          p.ScopeChannels[i] = p.ScopeChannels[i] || {};
-          p.ScopeChannels[i].Channels = [0,1,2,3].map(ch => bool(`scope${i}_ch${ch}`));
-          p.ScopeChannels[i].TriggerIndex = Number(value(`scope${i}_TriggerIndex`) || 0);
-        }
-      } else {
-        p.OutputRoot = value("OutputRoot");
-        p.MassCount = value("MassCount");
-        p.SettleSeconds = value("SettleSeconds");
-        p.ModeIndex = Number(value("ModeIndex") || 0);
-        p.ScanTypeIndex = Number(value("ScanTypeIndex") || 0);
-        p.VisaResources = value("VisaResources");
-        p.StateRatioFrequency = value("StateRatioFrequency");
-        p.EpsilonLow = value("EpsilonLow");
-        p.EpsilonHigh = value("EpsilonHigh");
-        p.EpsilonStep = value("EpsilonStep");
-        p.DeltaLow = value("DeltaLow");
-        p.DeltaHigh = value("DeltaHigh");
-        p.DeltaStep = value("DeltaStep");
-        p.FixedEpsilon = value("FixedEpsilon");
-        p.FixedDelta = value("FixedDelta");
+      const p = normalizePreset(JSON.parse(JSON.stringify(state.preset || defaultPreset())));
+      const activeEquipment = document.querySelector("[data-equipment].active")?.dataset.equipment;
+      if (activeEquipment) p.Equipment = activeEquipment;
+
+      if (document.getElementById("OutputRoot")) p.OutputRoot = keepFolder(value("OutputRoot"));
+      if (document.getElementById("MassCount")) p.MassCount = value("MassCount");
+      if (document.getElementById("SettleSeconds")) p.SettleSeconds = value("SettleSeconds") || "10";
+      if (document.getElementById("ModeIndex")) p.ModeIndex = Number(value("ModeIndex") || 0);
+      if (document.getElementById("ScanTypeIndex")) p.ScanTypeIndex = Number(value("ScanTypeIndex") || 0);
+      if (document.getElementById("VisaResources")) p.VisaResources = value("VisaResources");
+
+      if (document.getElementById("ScopeOutputRoot")) p.ScopeOutputRoot = keepFolder(value("ScopeOutputRoot"));
+      if (document.getElementById("OscilloscopeResources")) p.OscilloscopeResources = value("OscilloscopeResources");
+      if (document.getElementById("ScopeGeneratorResources")) p.ScopeGeneratorResources = value("ScopeGeneratorResources");
+      if (document.getElementById("ScopeExperimentSettleSeconds")) p.ScopeExperimentSettleSeconds = value("ScopeExperimentSettleSeconds") || "10";
+      if (document.getElementById("ScopeSettleSeconds")) p.ScopeSettleSeconds = value("ScopeSettleSeconds") || "1";
+      if (document.getElementById("ScopeAverageIndex")) p.ScopeAverageIndex = Number(value("ScopeAverageIndex") || 0);
+      if (document.getElementById("ScopeRecordLengthIndex")) p.ScopeRecordLengthIndex = Number(value("ScopeRecordLengthIndex") || 0);
+      if (document.getElementById("ScopeTimebaseIndex")) p.ScopeTimebaseIndex = Number(value("ScopeTimebaseIndex") || 0);
+
+      for (const name of ["StateRatioFrequency","StateRatioLimit","EpsilonLow","EpsilonHigh","EpsilonStep","FixedEpsilon","DeltaLow","DeltaHigh","DeltaStep","FixedDelta"]) {
+        if (document.getElementById(name)) p[name] = value(name);
       }
+      if (document.getElementById("StateRatioSweepIndex")) p.StateRatioSweepIndex = Number(value("StateRatioSweepIndex") || 0);
+      if (document.getElementById("EpsilonDivisionIndex")) p.EpsilonDivisionIndex = Number(value("EpsilonDivisionIndex") || 0);
+      if (document.getElementById("DeltaDivisionIndex")) p.DeltaDivisionIndex = Number(value("DeltaDivisionIndex") || 0);
+      if (document.getElementById("SkipCompletedScans")) p.SkipCompletedScans = bool("SkipCompletedScans");
 
       p.Channels = p.Channels || [];
       p.FunctionGenerators = p.FunctionGenerators || [];
-      const fgCount = Math.max(1, Math.min(5, state.appState?.activeFunctionGenerators || 1));
+      const fgCount = currentFgCount(p);
       for (let fg = 0; fg < fgCount; fg++) {
         p.FunctionGenerators[fg] = p.FunctionGenerators[fg] || {};
-        p.FunctionGenerators[fg].WaveformIndex = Number(value(`fg${fg}_WaveformIndex`) || 0);
-        p.FunctionGenerators[fg].CouplingEnabled = bool(`fg${fg}_CouplingEnabled`);
-        p.FunctionGenerators[fg].SourceChannelIndex = Number(value(`fg${fg}_SourceChannelIndex`) || 0);
-        p.FunctionGenerators[fg].WaveCombineEnabled = bool(`fg${fg}_WaveCombineEnabled`);
-        p.FunctionGenerators[fg].WaveCombineOutputIndex = Number(value(`fg${fg}_WaveCombineOutputIndex`) || 0);
+        if (document.getElementById(`fg${fg}_WaveformIndex`)) {
+          p.FunctionGenerators[fg].WaveformIndex = Number(value(`fg${fg}_WaveformIndex`) || 0);
+          p.FunctionGenerators[fg].CouplingEnabled = bool(`fg${fg}_CouplingEnabled`);
+          p.FunctionGenerators[fg].SourceChannelIndex = Number(value(`fg${fg}_SourceChannelIndex`) || 0);
+          p.FunctionGenerators[fg].WaveCombineEnabled = bool(`fg${fg}_WaveCombineEnabled`);
+          p.FunctionGenerators[fg].WaveCombineOutputIndex = Number(value(`fg${fg}_WaveCombineOutputIndex`) || 0);
+        }
         for (let ch = 0; ch < 2; ch++) {
           const index = fg * 2 + ch;
           p.Channels[index] = p.Channels[index] || {};
-          p.Channels[index].Used = bool(`ch${index}_Used`);
-          p.Channels[index].ModeIndex = Number(value(`ch${index}_ModeIndex`) || 0);
-          for (const name of ["FrequencyLow","FrequencyHigh","FrequencyStep","FixedFrequency","AmplitudeLow","AmplitudeHigh","AmplitudeStep","FixedAmplitude","PhaseLow","PhaseHigh","PhaseStep","FixedPhase"]) {
-            p.Channels[index][name] = value(`ch${index}_${name}`);
+          if (document.getElementById(`ch${index}_Used`)) {
+            p.Channels[index].Used = bool(`ch${index}_Used`);
+            p.Channels[index].ModeIndex = Number(value(`ch${index}_ModeIndex`) || 0);
+            for (const name of ["FrequencyLow","FrequencyHigh","FrequencyStep","FixedFrequency","AmplitudeLow","AmplitudeHigh","AmplitudeStep","FixedAmplitude","PhaseLow","PhaseHigh","PhaseStep","FixedPhase"]) {
+              p.Channels[index][name] = value(`ch${index}_${name}`);
+            }
           }
         }
       }
 
-      state.preset = p;
-      return p;
+      p.ScopeChannels = p.ScopeChannels || [];
+      const scopeCount = currentScopeCount(p);
+      for (let i = 0; i < scopeCount; i++) {
+        if (document.getElementById(`scope${i}_TriggerIndex`)) {
+          p.ScopeChannels[i] = p.ScopeChannels[i] || {};
+          p.ScopeChannels[i].Channels = [0,1,2,3].map(ch => bool(`scope${i}_ch${ch}`));
+          p.ScopeChannels[i].TriggerIndex = Number(value(`scope${i}_TriggerIndex`) || 0);
+        }
+      }
+
+      state.preset = normalizePreset(p);
+      return state.preset;
     }
 
-    async function sendCommand(type, includePreset = false) {
-      const body = { type };
-      if (includePreset) body.preset = collect();
-      const result = await api("/api/command", {
-        method: "POST",
-        body: JSON.stringify(body)
+    function wirePage() {
+      document.querySelectorAll("[data-view]").forEach(button => {
+        button.onclick = () => {
+          state.preset = collect();
+          state.view = button.dataset.view;
+          localStorage.setItem(viewKey, state.view);
+          render();
+        };
       });
-      alert(result.message || "Command queued.");
-      setTimeout(refreshStatus, 900);
+
+      document.querySelectorAll("[data-equipment]").forEach(button => {
+        button.onclick = () => {
+          state.preset = collect();
+          state.preset.Equipment = button.dataset.equipment;
+          render();
+        };
+      });
+
+      document.querySelectorAll("[data-command]").forEach(button => {
+        button.onclick = async () => {
+          const type = button.dataset.command;
+          const includePreset = ["apply", "run", "detect-generators", "detect-scope-generators", "detect-oscilloscopes", "detect-all"].includes(type);
+          await sendCommand(type, includePreset);
+        };
+      });
+
+      document.querySelectorAll("[data-next]").forEach(button => {
+        button.onclick = async () => {
+          await sendCommand("apply", true, "Setup applied. Move to scan inputs.");
+          state.view = "inputs";
+          localStorage.setItem(viewKey, state.view);
+          render();
+        };
+      });
+
+      document.querySelectorAll("[data-refresh]").forEach(button => {
+        button.onclick = () => refreshStatus().then(() => setNotice("Status refreshed.", "ok")).catch(error => setNotice(error.message, "error"));
+      });
+
+      document.querySelectorAll("[data-reset]").forEach(button => {
+        button.onclick = async () => {
+          if (confirm("Reset scan inputs on the desktop app?")) await sendCommand("reset", false);
+        };
+      });
+    }
+
+    async function sendCommand(type, includePreset = false, friendlyMessage = "") {
+      try {
+        const body = { type };
+        if (includePreset) body.preset = collect();
+        const result = await api("/api/command", {
+          method: "POST",
+          body: JSON.stringify(body)
+        });
+        setNotice(friendlyMessage || result.message || "Command queued.", "ok");
+        setTimeout(() => refreshStatus().catch(() => {}), 1100);
+      } catch (error) {
+        setNotice(error.message, "error");
+      }
     }
 
     document.getElementById("loginButton").onclick = login;
     document.getElementById("clearLoginButton").onclick = clearSavedLogin;
-    document.getElementById("applyButton").onclick = () => sendCommand("apply", true).catch(error => alert(error.message));
-    document.getElementById("runButton").onclick = () => sendCommand("run", true).catch(error => alert(error.message));
-    document.getElementById("stopButton").onclick = () => sendCommand("stop").catch(error => alert(error.message));
-    document.getElementById("pauseButton").onclick = () => sendCommand("pause").catch(error => alert(error.message));
-    document.getElementById("outputsOffButton").onclick = () => sendCommand("outputs-off").catch(error => alert(error.message));
-    document.getElementById("resetButton").onclick = () => {
-      if (confirm("Reset scan inputs on the desktop app?")) sendCommand("reset").catch(error => alert(error.message));
-    };
-    document.getElementById("logoutButton").onclick = clearSavedLogin;
 
     loadSavedSettings();
     if (state.token && state.relayUrl && state.labId) {
@@ -532,8 +1107,10 @@
           setPills();
         });
     } else {
+      state.preset = defaultPreset();
       setPills();
     }
+
     setInterval(() => {
       if (state.token && !document.getElementById("app").classList.contains("hidden")) {
         refreshStatus().catch(() => {});

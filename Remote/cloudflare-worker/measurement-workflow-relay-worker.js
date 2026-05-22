@@ -203,7 +203,19 @@ function normalizeLabId(value, env) {
 }
 
 function isSupportedCommand(type) {
-  return ["apply", "run", "stop", "pause", "reset", "outputs-off"].includes(type);
+  return [
+    "apply",
+    "run",
+    "stop",
+    "pause",
+    "reset",
+    "outputs-off",
+    "detect-generators",
+    "detect-fg",
+    "detect-scope-generators",
+    "detect-oscilloscopes",
+    "detect-all"
+  ].includes(type);
 }
 
 function commandKey(labId) {
