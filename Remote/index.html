@@ -706,6 +706,7 @@
         StateRatioCh2FrequencyStep: "",
         StateRatioCh2FixedFrequency: "",
         StateRatioCh2FrequencyDivisionIndex: 0,
+        StateRatioSameFrequency: true,
         StateRatioLimit: "4",
         StateRatioSweepIndex: 0,
         StateRatioSweepTag: "Frequency",
@@ -1267,6 +1268,7 @@
       const sweepFrequency = sweepIndex === 0;
       const sweepEpsilon = sweepIndex === 1;
       const sweepDelta = sweepIndex === 2;
+      const sameFrequency = p.StateRatioSameFrequency !== false;
       const field = (id, label, enabled) => `<div class="${enabled ? "" : "fieldOff"}">
         <label>${label}</label>
         <input id="${id}" inputmode="decimal" value="${esc(p[id])}" ${enabled ? "" : "disabled"}>
@@ -1294,8 +1296,11 @@
             <option value="2" ${selected(p.StateRatioSweepIndex,2)}>Sweep δ₀</option>
           </select>
         </div>
-        ${frequencyField("StateRatioCh1", "CH1")}
-        ${frequencyField("StateRatioCh2", "CH2")}
+        <div class="full">
+          <label class="switch"><input id="StateRatioSameFrequency" type="checkbox" ${checked(sameFrequency)}> Same Frequency For CH1 And CH2</label>
+        </div>
+        ${frequencyField("StateRatioCh1", sameFrequency ? "Shared" : "CH1")}
+        ${sameFrequency ? "" : frequencyField("StateRatioCh2", "CH2")}
         <div>
           <label>ε divide</label>
           <select id="EpsilonDivisionIndex" ${sweepEpsilon ? "" : "disabled"}>
@@ -1403,6 +1408,16 @@
       }
       if (document.getElementById("StateRatioCh1FrequencyDivisionIndex")) p.StateRatioCh1FrequencyDivisionIndex = Number(value("StateRatioCh1FrequencyDivisionIndex") || 0);
       if (document.getElementById("StateRatioCh2FrequencyDivisionIndex")) p.StateRatioCh2FrequencyDivisionIndex = Number(value("StateRatioCh2FrequencyDivisionIndex") || 0);
+      if (document.getElementById("StateRatioSameFrequency")) {
+        p.StateRatioSameFrequency = bool("StateRatioSameFrequency");
+        if (p.StateRatioSameFrequency) {
+          p.StateRatioCh2FrequencyLow = p.StateRatioCh1FrequencyLow;
+          p.StateRatioCh2FrequencyHigh = p.StateRatioCh1FrequencyHigh;
+          p.StateRatioCh2FrequencyStep = p.StateRatioCh1FrequencyStep;
+          p.StateRatioCh2FixedFrequency = p.StateRatioCh1FixedFrequency;
+          p.StateRatioCh2FrequencyDivisionIndex = p.StateRatioCh1FrequencyDivisionIndex;
+        }
+      }
       if (document.getElementById("StateRatioSweepIndex")) {
         p.StateRatioSweepIndex = Number(value("StateRatioSweepIndex") || 0);
         p.StateRatioSweepTag = ["Frequency", "Epsilon", "Delta0"][p.StateRatioSweepIndex] || "Frequency";
@@ -1556,6 +1571,7 @@
       return control.id === "ModeIndex" ||
         control.id === "ScanTypeIndex" ||
         control.id === "StateRatioSweepIndex" ||
+        control.id === "StateRatioSameFrequency" ||
         /^(ch\d+_Used|ch\d+_ModeIndex)$/.test(control.id);
     }
 
