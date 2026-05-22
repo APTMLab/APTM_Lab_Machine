@@ -529,11 +529,11 @@
     const tokenKey = "measurement-workflow-remote-token";
     const viewKey = "measurement-workflow-remote-view-v2";
 
-    const modes = ["Sweep frequency", "Sweep amplitude", "Sweep phase", "Fixed condition"];
+    const modes = ["Sweep Frequency", "Sweep Amplitude", "Sweep Phase", "Fixed Condition"];
     const waveforms = ["Sine", "Square", "Ramp", "Pulse", "Noise"];
     const avgOptions = ["6 (64)", "7 (128)", "8 (256)", "9 (512)"];
     const recordOptions = ["1e3", "1e4", "1e5"];
-    const timebaseOptions = ["Fixed FFT window", "Follow frequency"];
+    const timebaseOptions = ["Fixed FFT Window", "Follow Frequency"];
 
     const state = {
       token: localStorage.getItem(tokenKey) || "",
@@ -1028,22 +1028,22 @@
             <input id="SettleSeconds" inputmode="decimal" value="${esc(p.SettleSeconds || "10")}">
           </div>
           <div>
-            <label>Generator mode</label>
+            <label>Generator Mode</label>
             <select id="ModeIndex">
-              <option value="0" ${selected(p.ModeIndex,0)}>External function generator</option>
-              <option value="1" ${selected(p.ModeIndex,1)} ${stateRatio ? "disabled" : ""}>PSV internal generator</option>
+              <option value="0" ${selected(p.ModeIndex,0)}>External Function Generator</option>
+              <option value="1" ${selected(p.ModeIndex,1)} ${stateRatio ? "disabled" : ""}>PSV Internal Generator</option>
             </select>
           </div>
           <div>
-            <label>Scan type</label>
+            <label>Scan Type</label>
             <select id="ScanTypeIndex">
-              <option value="0" ${selected(p.ScanTypeIndex,0)}>Frequency, amplitude, phase</option>
-              <option value="1" ${selected(p.ScanTypeIndex,1)}>Epsilon and delta_0</option>
+              <option value="0" ${selected(p.ScanTypeIndex,0)}>Frequency, Amplitude, Phase</option>
+              <option value="1" ${selected(p.ScanTypeIndex,1)}>Epsilon And Delta_0</option>
             </select>
           </div>
           <div class="full resourceBox">
             <div class="resourceTop">
-              <label style="margin:0">External generator VISA resources</label>
+              <label style="margin:0">External Generator VISA Resources</label>
               <span class="countBadge">${countLines(p.VisaResources)} found</span>
             </div>
             <textarea id="VisaResources">${esc(p.VisaResources)}</textarea>
@@ -1140,11 +1140,11 @@
       const outputs = p.FunctionGenerators || [];
       const internalGenerator = p.Equipment !== "Oscilloscope" && Number(p.ModeIndex || 0) === 1;
       if (fgCount <= 0) {
-        return `<section class="card"><h2>Function Generators</h2><div class="content muted">Detect or enter function-generator VISA resources in Setup before entering channel inputs.</div></section>`;
+        return `<section class="card"><h2>Function Generators</h2><div class="content muted">Detect Or Enter Function-Generator VISA Resources In Setup Before Entering Channel Inputs.</div></section>`;
       }
 
       if (internalGenerator) {
-        let internalHtml = `<section class="card"><h2>PSV Internal Generator</h2><div class="content"><div class="muted">The PSV internal generator exposes four channels with phase fixed at 0 degrees.</div>`;
+        let internalHtml = `<section class="card"><h2>PSV Internal Generator</h2><div class="content"><div class="muted">The PSV Internal Generator Exposes Four Channels With Phase Fixed At 0 Degrees.</div>`;
         for (let index = 0; index < 4; index++) {
           internalHtml += renderChannel(index, channels[index] || {}, false, `CH${index + 1}`);
         }
