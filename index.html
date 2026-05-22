@@ -882,26 +882,6 @@
               <button class="primary" data-next>Apply Setup / Continue</button>
             </div>
           </div>
-          <div>
-            <label>Experiment settle (s)</label>
-            <input id="ScopeExperimentSettleSeconds" inputmode="decimal" value="${esc(p.ScopeExperimentSettleSeconds || "10")}">
-          </div>
-          <div>
-            <label>Scope settle (s)</label>
-            <input id="ScopeSettleSeconds" inputmode="decimal" value="${esc(p.ScopeSettleSeconds || "1")}">
-          </div>
-          <div>
-            <label>Averaging</label>
-            <select id="ScopeAverageIndex">${avgOptions.map((item,i) => `<option value="${i}" ${selected(p.ScopeAverageIndex,i)}>${item}</option>`).join("")}</select>
-          </div>
-          <div>
-            <label>Record length</label>
-            <select id="ScopeRecordLengthIndex">${recordOptions.map((item,i) => `<option value="${i}" ${selected(p.ScopeRecordLengthIndex,i)}>${item}</option>`).join("")}</select>
-          </div>
-          <div class="full">
-            <label>Timebase mode</label>
-            <select id="ScopeTimebaseIndex">${timebaseOptions.map((item,i) => `<option value="${i}" ${selected(p.ScopeTimebaseIndex,i)}>${item}</option>`).join("")}</select>
-          </div>
         </div>
       </section>`;
     }
@@ -1096,7 +1076,29 @@
     function renderScopeAcquisition(p) {
       const count = currentScopeCount(p);
       const scopes = p.ScopeChannels || [];
-      let html = `<section class="card"><h2>Oscilloscopes</h2><div class="content">`;
+      let html = `<section class="card"><h2>Oscilloscope Settings</h2><div class="content">
+        <div class="grid">
+          <div>
+            <label>Experiment settle (s)</label>
+            <input id="ScopeExperimentSettleSeconds" inputmode="decimal" value="${esc(p.ScopeExperimentSettleSeconds || "10")}">
+          </div>
+          <div>
+            <label>Scope settle (s)</label>
+            <input id="ScopeSettleSeconds" inputmode="decimal" value="${esc(p.ScopeSettleSeconds || "1")}">
+          </div>
+          <div>
+            <label>Averaging</label>
+            <select id="ScopeAverageIndex">${avgOptions.map((item,i) => `<option value="${i}" ${selected(p.ScopeAverageIndex,i)}>${item}</option>`).join("")}</select>
+          </div>
+          <div>
+            <label>Record length</label>
+            <select id="ScopeRecordLengthIndex">${recordOptions.map((item,i) => `<option value="${i}" ${selected(p.ScopeRecordLengthIndex,i)}>${item}</option>`).join("")}</select>
+          </div>
+          <div class="full">
+            <label>Timebase mode</label>
+            <select id="ScopeTimebaseIndex">${timebaseOptions.map((item,i) => `<option value="${i}" ${selected(p.ScopeTimebaseIndex,i)}>${item}</option>`).join("")}</select>
+          </div>
+        </div>`;
       if (count <= 0) {
         return html + `<div class="muted">Detect or enter oscilloscope VISA resources in Setup before selecting signal channels.</div></div></section>`;
       }
