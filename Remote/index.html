@@ -540,11 +540,13 @@
       relayUrl: defaultRelayUrl,
       labId: defaultLabId,
       view: "home",
+      relayStatus: null,
       appState: null,
       desktopOnline: false,
       preset: null,
       dirty: false,
       selectedFgIndex: 0,
+      statusRefreshId: 0,
       runMonitorId: 0,
       runMonitorAttempts: 0
     };
@@ -633,6 +635,9 @@
       localStorage.removeItem(tokenKey);
       if (state.runMonitorId) clearInterval(state.runMonitorId);
       state.runMonitorId = 0;
+      if (state.statusRefreshId) clearInterval(state.statusRefreshId);
+      state.statusRefreshId = 0;
+      state.relayStatus = null;
       document.body.classList.remove("plotOnly");
       document.getElementById("loginCard").classList.remove("hidden");
       document.getElementById("app").classList.add("hidden");
@@ -643,6 +648,7 @@
 
     async function refreshStatus(options = {}) {
       const payload = await api("/api/status?labId=" + encodeURIComponent(state.labId));
+      state.relayStatus = payload.status || null;
       state.desktopOnline = payload.status?.desktopOnline === true;
       state.appState = state.desktopOnline ? (payload.status?.appState || null) : null;
       const remotePreset = normalizePreset(
@@ -676,6 +682,15 @@
       document.getElementById("loginCard").classList.add("hidden");
       document.getElementById("app").classList.remove("hidden");
       render();
+      startStatusRefresh();
+    }
+
+    function startStatusRefresh() {
+      if (state.statusRefreshId) return;
+      state.statusRefreshId = setInterval(() => {
+        if (!state.token || !state.relayUrl || !state.labId || document.visibilityState !== "visible") return;
+        refreshStatus({ preserveDraft:true }).catch(() => {});
+      }, 15000);
     }
 
     function defaultPreset() {
@@ -760,10 +775,12 @@
 
     function setPills() {
       if (!state.desktopOnline) {
+        const offlineLabel = state.relayStatus?.remoteEnabled === false ? "Remote off" : "Desktop not connected";
+        const offlineMessage = state.relayStatus?.message || "Waiting for desktop app";
         document.getElementById("statusPills").innerHTML = `
-          <span class="pill bad">Remote off</span>
+          <span class="pill bad">${esc(offlineLabel)}</span>
           <span class="pill">Idle</span>
-          <span class="pill">Desktop not connected</span>
+          <span class="pill">${esc(offlineMessage)}</span>
         `;
         return;
       }
