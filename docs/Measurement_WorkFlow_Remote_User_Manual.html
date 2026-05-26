@@ -1,0 +1,1115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Measurement WorkFlow Remote User Manual</title>
+  <style>
+    @page {
+      size: Letter;
+      margin: 0.64in 0.68in;
+    }
+
+    :root {
+      --ink: #0f172a;
+      --muted: #52627a;
+      --line: #cbd8e6;
+      --line-soft: #e3ebf4;
+      --teal: #0f766e;
+      --teal-dark: #115e59;
+      --teal-soft: #e7f7f4;
+      --blue-soft: #eef6ff;
+      --panel: #ffffff;
+      --page: #f4f8fc;
+      --warning: #fff7ed;
+      --warning-line: #fed7aa;
+      --danger: #fff1f2;
+      --danger-line: #fecaca;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      color: var(--ink);
+      background: var(--page);
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.48;
+    }
+
+    body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      font-size: 34pt;
+      line-height: 1.04;
+      letter-spacing: -0.04em;
+      margin-bottom: 0.22in;
+    }
+
+    h2 {
+      font-size: 18pt;
+      line-height: 1.16;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.16in;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    h2::before,
+    .section-title::before {
+      content: "";
+      width: 4px;
+      height: 21px;
+      border-radius: 5px;
+      background: var(--teal);
+      display: inline-block;
+      flex: 0 0 auto;
+    }
+
+    h3 {
+      font-size: 12.5pt;
+      margin: 0.2in 0 0.06in;
+      letter-spacing: -0.01em;
+    }
+
+    h4 {
+      font-size: 10.5pt;
+      margin: 0.14in 0 0.05in;
+    }
+
+    p {
+      margin-bottom: 0.09in;
+    }
+
+    a {
+      color: var(--teal-dark);
+      text-decoration: none;
+    }
+
+    ul,
+    ol {
+      margin: 0.05in 0 0.12in 0.22in;
+      padding: 0;
+    }
+
+    li {
+      margin: 0.03in 0;
+    }
+
+    code {
+      font-family: "Cascadia Mono", Consolas, monospace;
+      background: #f1f5f9;
+      border: 1px solid var(--line-soft);
+      border-radius: 5px;
+      padding: 1px 5px;
+      font-size: 9.4pt;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.1in 0 0.18in;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th,
+    td {
+      text-align: left;
+      vertical-align: top;
+      padding: 8px 9px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    th {
+      background: #f8fbff;
+      font-size: 9.4pt;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: #334155;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    tr,
+    table,
+    .card,
+    .callout,
+    .cover-card,
+    .diagram,
+    .workflow,
+    .workflow-step,
+    .grid-2,
+    .grid-3,
+    .mock-screen,
+    .plot {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    h2,
+    h3,
+    h4 {
+      break-after: avoid;
+      page-break-after: avoid;
+    }
+
+    .page {
+      page-break-after: always;
+      background: var(--panel);
+      min-height: 9.56in;
+      padding: 0.1in 0;
+    }
+
+    .page:last-child {
+      page-break-after: auto;
+    }
+
+    .cover {
+      min-height: 9.56in;
+      background:
+        radial-gradient(circle at 7% 0%, rgba(20, 184, 166, 0.18), transparent 30%),
+        radial-gradient(circle at 95% 16%, rgba(37, 99, 235, 0.12), transparent 32%),
+        linear-gradient(135deg, #f8fbff 0%, #edf6fb 48%, #e5f0f8 100%);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 0.55in;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+    }
+
+    .cover-mark {
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      background:
+        linear-gradient(135deg, #0f766e, #0d9488);
+      box-shadow: 0 12px 28px rgba(15, 118, 110, 0.22);
+      position: relative;
+    }
+
+    .cover-mark::after {
+      content: "";
+      position: absolute;
+      inset: 17px 11px;
+      border: 2px solid rgba(255, 255, 255, 0.88);
+      border-top: 0;
+      border-left: 0;
+      transform: skewX(-18deg);
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 14pt;
+      line-height: 1.4;
+      max-width: 6.6in;
+    }
+
+    .cover-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.14in;
+      margin-top: 0.32in;
+      max-width: 6.7in;
+    }
+
+    .cover-card,
+    .card,
+    .callout,
+    .workflow-step {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 0.16in;
+    }
+
+    .cover-card b {
+      display: block;
+      margin-bottom: 0.04in;
+      font-size: 10.8pt;
+    }
+
+    .small-muted,
+    .meta,
+    .caption {
+      color: var(--muted);
+      font-size: 9.4pt;
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.1in;
+      margin-top: 0.2in;
+    }
+
+    .doc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+      border-bottom: 1px solid var(--line-soft);
+      padding-bottom: 0.08in;
+      margin-bottom: 0.22in;
+      font-size: 9pt;
+    }
+
+    .section-title {
+      font-size: 18pt;
+      font-weight: 750;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      margin-bottom: 0.16in;
+    }
+
+    .toc {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.12in;
+    }
+
+    .toc a {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.18in;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0.11in 0.13in;
+      background: #fff;
+      color: var(--ink);
+      font-weight: 650;
+    }
+
+    .toc span {
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .grid-2,
+    .grid-3 {
+      display: grid;
+      gap: 0.13in;
+      margin: 0.12in 0;
+    }
+
+    .grid-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .grid-3 {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .callout {
+      background: var(--teal-soft);
+      border-color: #99f6e4;
+      color: #134e4a;
+      margin: 0.12in 0;
+    }
+
+    .warning {
+      background: var(--warning);
+      border-color: var(--warning-line);
+      color: #7c2d12;
+    }
+
+    .danger-note {
+      background: var(--danger);
+      border-color: var(--danger-line);
+      color: #7f1d1d;
+    }
+
+    .label {
+      display: inline-block;
+      border-radius: 999px;
+      border: 1px solid #99f6e4;
+      background: #ecfdf5;
+      color: #115e59;
+      padding: 3px 8px;
+      font-weight: 700;
+      font-size: 8.8pt;
+      margin-right: 5px;
+    }
+
+    .field {
+      border: 1px solid var(--line);
+      background: #f8fbff;
+      border-radius: 9px;
+      padding: 0.09in;
+      min-height: 0.58in;
+    }
+
+    .field b {
+      display: block;
+      font-size: 9.5pt;
+      margin-bottom: 3px;
+    }
+
+    .workflow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.08in;
+      margin: 0.14in 0 0.18in;
+    }
+
+    .workflow-step {
+      min-height: 0.86in;
+      background: #f8fbff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .workflow-step::before {
+      content: "";
+      width: 5px;
+      height: 24px;
+      border-radius: 5px;
+      background: var(--teal);
+      display: block;
+      margin-bottom: 0.06in;
+    }
+
+    .diagram {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background:
+        linear-gradient(90deg, rgba(15, 118, 110, 0.08), transparent 36%, rgba(37, 99, 235, 0.08)),
+        #fff;
+      padding: 0.17in;
+      margin: 0.14in 0;
+    }
+
+    .chain {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.08in;
+      align-items: stretch;
+    }
+
+    .node {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 10px;
+      padding: 0.1in;
+      min-height: 0.72in;
+      text-align: center;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .node.main {
+      background: var(--teal-soft);
+      border-color: #99f6e4;
+      color: #115e59;
+    }
+
+    .arrow-row {
+      text-align: center;
+      color: var(--muted);
+      font-size: 9pt;
+      margin-top: 0.08in;
+    }
+
+    .mock-screen {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #f8fbff;
+      padding: 0.12in;
+      margin: 0.12in 0;
+    }
+
+    .mock-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 0.1in;
+    }
+
+    .mock-pill {
+      height: 0.2in;
+      border-radius: 999px;
+      background: var(--teal-soft);
+      border: 1px solid #99f6e4;
+      min-width: 0.65in;
+    }
+
+    .mock-grid {
+      display: grid;
+      grid-template-columns: 0.9fr 1.4fr;
+      gap: 0.1in;
+    }
+
+    .mock-panel {
+      border: 1px solid var(--line-soft);
+      border-radius: 10px;
+      background: #fff;
+      padding: 0.1in;
+      min-height: 1.4in;
+    }
+
+    .plot {
+      height: 1.55in;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background:
+        linear-gradient(#e2e8f0 1px, transparent 1px) 0 0 / 100% 25%,
+        linear-gradient(90deg, #e2e8f0 1px, transparent 1px) 0 0 / 25% 100%,
+        #fff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .plot svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .no-break {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    .footer-note {
+      margin-top: 0.16in;
+      color: var(--muted);
+      font-size: 9pt;
+      border-top: 1px solid var(--line-soft);
+      padding-top: 0.08in;
+    }
+  </style>
+</head>
+<body>
+  <section class="page cover">
+    <div>
+      <div class="cover-mark" aria-hidden="true"></div>
+      <h1 style="margin-top:0.35in">Measurement WorkFlow Remote</h1>
+      <p class="subtitle">User manual for browser-based scan setup, equipment detection, run control, and transmission-spectrum review.</p>
+      <div class="cover-grid">
+        <div class="cover-card">
+          <b>Purpose</b>
+          Configure and start Measurement WorkFlow scans from a phone or desktop browser while the lab PC remains the experiment control point.
+        </div>
+        <div class="cover-card">
+          <b>Supported Workflows</b>
+          Oscilloscope acquisition and Laser Doppler Vibrometer measurement workflows.
+        </div>
+        <div class="cover-card">
+          <b>Primary Users</b>
+          Experimental vibration, dynamics, and acoustics researchers.
+        </div>
+        <div class="cover-card">
+          <b>Desktop Authority</b>
+          The desktop application remains responsible for hardware communication and experiment execution.
+        </div>
+      </div>
+    </div>
+    <div class="meta">
+      <div>
+        <b>Document type</b><br>
+        User Manual
+      </div>
+      <div>
+        <b>Revision</b><br>
+        May 26, 2026
+      </div>
+      <div>
+        <b>Software</b><br>
+        Measurement WorkFlow Remote
+      </div>
+      <div>
+        <b>Prepared for</b><br>
+        APTM Lab measurement workflow
+      </div>
+    </div>
+  </section>
+
+  <section class="page" id="toc">
+    <div class="doc-header">
+      <span>Measurement WorkFlow Remote</span>
+      <span>User Manual</span>
+    </div>
+    <div class="section-title">Contents</div>
+    <div class="toc">
+      <a href="#overview">1. System Overview <span>01</span></a>
+      <a href="#requirements">2. Requirements <span>02</span></a>
+      <a href="#login">3. Login and Connection <span>03</span></a>
+      <a href="#home">4. Choose Scan Workflow <span>04</span></a>
+      <a href="#setup">5. Setup and Detect <span>05</span></a>
+      <a href="#inputs">6. Scan Inputs <span>06</span></a>
+      <a href="#run">7. Run Control <span>07</span></a>
+      <a href="#spectrum">8. Transmission Spectrum View <span>08</span></a>
+      <a href="#troubleshooting">9. Troubleshooting <span>09</span></a>
+      <a href="#reference">10. Field Reference <span>10</span></a>
+    </div>
+    <div class="callout" style="margin-top:0.25in">
+      <b>Manual scope:</b> This document covers the browser website. The desktop application remains the authority for hardware communication, readiness checks, plotting, logging, and equipment shutdown.
+    </div>
+  </section>
+
+  <section class="page" id="overview">
+    <div class="doc-header">
+      <span>1. System Overview</span>
+      <span>Measurement WorkFlow Remote</span>
+    </div>
+    <h2>Browser Interface For Scan Setup</h2>
+    <p>Measurement WorkFlow Remote is the browser interface for preparing scan inputs for the Measurement WorkFlow desktop application. It is designed for phone and desktop browsers. The desktop app remains responsible for hardware communication, readiness checks, experiment execution, data saving, and plotting.</p>
+
+    <div class="diagram no-break">
+      <div class="chain">
+        <div class="node">Phone or Browser</div>
+        <div class="node">Scan Inputs</div>
+        <div class="node main">Measurement WorkFlow Desktop</div>
+        <div class="node">Lab Instruments</div>
+        <div class="node">Saved Data and Plots</div>
+      </div>
+      <div class="arrow-row">The website prepares the scan. The desktop app applies the workflow and runs the experiment locally.</div>
+    </div>
+
+    <h3>Supported acquisition families</h3>
+    <div class="grid-2">
+      <div class="card">
+        <h4>Oscilloscope workflow</h4>
+        <p>Used for Tektronix oscilloscope acquisition with B&amp;K Precision 4055B function-generator sweep control.</p>
+      </div>
+      <div class="card">
+        <h4>Laser Doppler Vibrometer workflow</h4>
+        <p>Used for PSV-680F QTec Time or FFT measurement workflows with external or PSV generator setup.</p>
+      </div>
+    </div>
+
+    <h3>Typical workflow</h3>
+    <div class="workflow">
+      <div class="workflow-step"><b>Login</b><br><span class="small-muted">Open the website session.</span></div>
+      <div class="workflow-step"><b>Select</b><br><span class="small-muted">Choose Oscilloscope or LDV.</span></div>
+      <div class="workflow-step"><b>Detect</b><br><span class="small-muted">Ask the desktop app to find instruments.</span></div>
+      <div class="workflow-step"><b>Configure</b><br><span class="small-muted">Enter scan ranges and channels.</span></div>
+      <div class="workflow-step"><b>Run</b><br><span class="small-muted">Apply and start the scan.</span></div>
+    </div>
+  </section>
+
+  <section class="page" id="requirements">
+    <div class="doc-header">
+      <span>2. Requirements</span>
+      <span>Measurement WorkFlow Remote</span>
+    </div>
+    <h2>What Must Be Ready</h2>
+
+    <h3>Lab PC</h3>
+    <ul>
+      <li>Measurement WorkFlow desktop application installed and able to run scans locally.</li>
+      <li>Required instruments connected and visible to the desktop app.</li>
+      <li>Output folders available for saving experiment data.</li>
+      <li>Internet access from the lab PC when the browser website is used outside the local machine.</li>
+    </ul>
+
+    <h3>Website</h3>
+    <ul>
+      <li>A browser on a phone, tablet, or computer.</li>
+      <li>Website link provided by the lab administrator.</li>
+      <li>Lab ID.</li>
+      <li>Current website password.</li>
+    </ul>
+
+    <div class="callout warning">
+      <b>Before running:</b> confirm that the physical setup is safe, cables are connected correctly, the excitation path is ready, and no one is adjusting the mechanical system.
+    </div>
+  </section>
+
+  <section class="page" id="login">
+    <div class="doc-header">
+      <span>3. Login and Connection</span>
+      <span>Measurement WorkFlow Remote</span>
+    </div>
+    <h2>Sign In To The Website</h2>
+    <p>The login page identifies the lab session and allows the browser to send scan setup commands to the desktop application. The browser may remember the session locally so the page can resume later.</p>
+
+    <div class="mock-screen no-break">
+      <div class="mock-bar"><span class="mock-pill"></span><span class="mock-pill"></span><span class="mock-pill"></span></div>
+      <div class="mock-grid">
+        <div class="mock-panel">
+          <b>Login fields</b>
+          <div class="field" style="margin-top:0.08in"><b>Website address</b>Usually pre-filled or provided by the lab administrator.</div>
+          <div class="field"><b>Lab ID</b>Example: <code>aptm-lab</code></div>
+          <div class="field"><b>Password</b>Current website password.</div>
+        </div>
+        <div class="mock-panel">
+          <b>Status indicators</b>
+          <p class="small-muted">The website shows readiness, desktop connection, idle/running state, and selected workflow.</p>
+          <p><span class="label">Ready</span><span class="label">Idle</span><span class="label">Oscilloscope</span></p>
+        </div>
+      </div>
+    </div>
+
+    <h3>Login procedure</h3>
+    <ol>
+      <li>Open the Measurement WorkFlow Remote website.</li>
+      <li>Confirm the website address if the field is visible.</li>
+      <li>Enter the Lab ID.</li>
+      <li>Enter the website password.</li>
+      <li>Select <b>Login</b>.</li>
+    </ol>
+
+    <h3>Clear Saved Login</h3>
+    <p>Use <b>Clear Saved Login</b> when the password changes, the website address changes, or another lab member needs to log in with their current credentials.</p>
+
+    <div class="callout">
+      <b>Login duration:</b> If the website reports an expired login, clear the saved login and sign in again.
+    </div>
+  </section>
+
+  <section class="page" id="home">
+    <div class="doc-header">
+      <span>4. Choose Scan Workflow</span>
+      <span>Measurement WorkFlow Remote</span>
+    </div>
+    <h2>Open The Correct Desktop Scan Stage</h2>
+    <p>After login, the Home page shows two acquisition families. Selecting one sends an <b>Apply</b> command to the desktop app so the desktop scan page opens the matching workflow.</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Oscilloscope</h3>
+        <p>Use this workflow for Tektronix oscilloscope acquisition with B&amp;K Precision 4055B sweep control.</p>
+      </div>
+      <div class="card">
+        <h3>Laser Doppler Vibrometer</h3>
+        <p>Use this workflow for PSV-680F QTec Time or FFT acquisition and LDV transmission-spectrum analysis.</p>
+      </div>
+    </div>
+
+    <h3>Stepper navigation</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Stage</th>
+          <th>Use</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Home</td>
+          <td>Choose Oscilloscope or Laser Doppler Vibrometer.</td>
+        </tr>
+        <tr>
+          <td>Setup and Detect</td>
+          <td>Enter output folders and detect available instruments.</td>
+        </tr>
+        <tr>
+          <td>Scan Inputs</td>
+          <td>Enter sweep/channel settings and run the scan.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="page" id="setup">
+    <div class="doc-header">
+      <span>5. Setup and Detect</span>
+      <span>Measurement WorkFlow Remote</span>
+    </div>
+    <h2>Prepare Instruments Before Entering Scan Inputs</h2>
+
+    <h3>LDV setup fields</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Output folder</td>
+          <td>Folder where scan data should be saved. If left blank on the website, the default data folder is used.</td>
+        </tr>
+        <tr>
+          <td>Mass count</td>
+          <td>Number of masses or response points expected in the LDV dataset.</td>
+        </tr>
+        <tr>
+          <td>Experiment settle (s)</td>
+          <td>Wait time after a frequency or excitation-state change before acquisition begins.</td>
+        </tr>
+        <tr>
+          <td>Generator Mode</td>
+          <td>External Function Generator or PSV Internal Generator. The PSV internal generator mode does not use phase input.</td>
+        </tr>
+        <tr>
+          <td>Scan Type</td>
+          <td>Frequency/Amplitude/Phase or &epsilon; and &delta;<sub>0</sub> sweep.</td>
+        </tr>
+        <tr>
+          <td>External Generator VISA Resources</td>
+          <td>Detected or manually pasted B&amp;K Precision 4055B VISA resource strings.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Oscilloscope setup fields</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Output folder</td>
+          <td>Folder where oscilloscope scan data should be saved.</td>
+        </tr>
+        <tr>
+          <td>Oscilloscope VISA Resources</td>
+          <td>Detected or manually pasted Tektronix oscilloscope VISA resources.</td>
+        </tr>
+        <tr>
+          <td>Function Generator VISA Resources</td>
+          <td>Detected or manually pasted B&amp;K Precision 4055B function-generator resources.</td>
+        </tr>
+        <tr>
+          <td>Generator Mode</td>
+          <td>External Function Generator. Oscilloscope workflow uses external generator control.</td>
+        </tr>
+        <tr>
+          <td>Scan Type</td>
+          <td>Frequency/Amplitude/Phase or &epsilon; and &delta;<sub>0</sub> sweep.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="no-break">
+      <h3>Detect buttons</h3>
+      <div class="grid-3">
+        <div class="card"><b>Detect Oscilloscopes</b><br><span class="small-muted">Asks the desktop app to detect Tektronix resources.</span></div>
+        <div class="card"><b>Detect Function Generators</b><br><span class="small-muted">Asks the desktop app to detect B&amp;K Precision 4055B resources.</span></div>
+        <div class="card"><b>Detect Both</b><br><span class="small-muted">Runs oscilloscope and function-generator detection from one button.</span></div>
+      </div>
+
+      <div class="callout">
+        <b>Detection is not continuous.</b> The website sends a detect command when you press a detect button. The desktop app performs detection and later reports the result back to the website.
+      </div>
+    </div>
+  </section>
+
+  <section class="page" id="inputs">
+    <div class="doc-header">
+      <span>6. Scan Inputs</span>
+      <span>Measurement WorkFlow Remote</span>
+    </div>
+    <h2>Enter The Scan Definition</h2>
+
+    <h3>Standard function-generator channel input</h3>
+    <p>Each detected B&amp;K Precision 4055B function generator has two channels. The website pages through function generators so only one generator is edited at a time.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Channel mode</th>
+          <th>Active fields</th>
+          <th>Use case</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Sweep Frequency</td>
+          <td>Frequency low, frequency high, frequency step, fixed amplitude, fixed phase.</td>
+          <td>Frequency response measurements at a constant excitation amplitude.</td>
+        </tr>
+        <tr>
+          <td>Sweep Amplitude</td>
+          <td>Fixed frequency, amplitude low, amplitude high, amplitude step, fixed phase.</td>
+          <td>Amplitude-dependent response checks.</td>
+        </tr>
+        <tr>
+          <td>Sweep Phase</td>
+          <td>Fixed frequency, fixed amplitude, phase low, phase high, phase step.</td>
+          <td>Phase excitation studies using external function generators.</td>
+        </tr>
+        <tr>
+          <td>Fixed Condition</td>
+          <td>Fixed frequency, fixed amplitude, fixed phase.</td>
+          <td>Holding one channel constant while another channel sweeps.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Function-generator output settings</h3>
+    <div class="grid-2">
+      <div class="card">
+        <h4>Waveform</h4>
+        <p>Choose the waveform for each function generator. Default is Sine.</p>
+      </div>
+      <div class="card">
+        <h4>CH Coupling and Wave Combine</h4>
+        <p>Configure output behavior when the generator should couple channels or combine waveforms.</p>
+      </div>
+    </div>
+
+    <h3>&epsilon; and &delta;<sub>0</sub> sweep input</h3>
+    <p>This mode keeps the &epsilon; and &delta;<sub>0</sub> logic from the desktop workflow while also allowing frequency control. If only one function generator is active, it is selected automatically. If multiple generators are active, choose the target generator.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Control</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Amplitude cap Vpp</td>
+          <td>Maximum voltage cap used by the &epsilon;/&delta;<sub>0</sub> logic.</td>
+        </tr>
+        <tr>
+          <td>Sweep</td>
+          <td>Select Sweep Frequency, Sweep &epsilon;, or Sweep &delta;<sub>0</sub>.</td>
+        </tr>
+        <tr>
+          <td>Same Frequency For CH1 And CH2</td>
+          <td>When enabled, CH2 follows CH1 frequency inputs.</td>
+        </tr>
+        <tr>
+          <td>Divide by step / points</td>
+          <td>Choose whether the step field represents a direct step size or a number of points.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="page" id="run">
+    <div class="doc-header">
+      <span>7. Run Control</span>
+      <span>Measurement WorkFlow Remote</span>
+    </div>
+    <h2>Apply, Run, Pause, Stop</h2>
+    <p>The Run Control panel sends direct workflow commands to the desktop app. The desktop app still checks readiness before the experiment starts.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Button</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Back to Setup</td>
+          <td>Return to the Setup and Detect stage without running the experiment.</td>
+        </tr>
+        <tr>
+          <td>Refresh</td>
+          <td>Requests the latest status and detected resources from the desktop app.</td>
+        </tr>
+        <tr>
+          <td>Apply</td>
+          <td>Sends current scan inputs to the desktop app without starting the scan.</td>
+        </tr>
+        <tr>
+          <td>Apply &amp; Run</td>
+          <td>Sends current scan inputs and requests scan start.</td>
+        </tr>
+        <tr>
+          <td>Pause</td>
+          <td>Requests a pause/resume style control action from the desktop app.</td>
+        </tr>
+        <tr>
+          <td>Stop</td>
+          <td>Requests the active scan to stop.</td>
+        </tr>
+        <tr>
+          <td>Outputs Off</td>
+          <td>Requests function-generator outputs to turn off.</td>
+        </tr>
+        <tr>
+          <td>Reset Inputs</td>
+          <td>Requests a reset of desktop scan inputs.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Long scans</h3>
+    <p>During a run, the website checks for updated status periodically. If the phone sleeps or the browser is suspended, the desktop experiment can continue. Reopen the website and log in again if needed to view updated status.</p>
+  </section>
+
+  <section class="page" id="spectrum">
+    <div class="doc-header">
+      <span>8. Transmission Spectrum View</span>
+      <span>Measurement WorkFlow Remote</span>
+    </div>
+    <h2>Review The Final Plot</h2>
+    <p>After a scan completes and the desktop app reports transmission-spectrum data, the remote website can show the final transmission-spectrum figure. This view is intentionally minimal: it displays the plot only, so it can be reviewed quickly on a phone.</p>
+
+    <div class="plot no-break" style="height:3in">
+      <svg viewBox="0 0 700 260" preserveAspectRatio="none">
+        <polyline points="35,70 120,90 205,115 290,145 375,110 460,78 545,92 665,118" fill="none" stroke="#2563eb" stroke-width="3"/>
+        <polyline points="35,105 120,96 205,122 290,150 375,132 460,112 545,118 665,141" fill="none" stroke="#0d9488" stroke-width="3"/>
+        <polyline points="35,155 120,130 205,160 290,175 375,142 460,128 545,147 665,166" fill="none" stroke="#ea580c" stroke-width="3"/>
+        <circle cx="35" cy="70" r="4" fill="#2563eb"/>
+        <circle cx="460" cy="78" r="4" fill="#2563eb"/>
+        <text x="34" y="28" fill="#0f172a" font-size="18" font-weight="700">Transmission Spectrum</text>
+        <text x="34" y="244" fill="#52627a" font-size="12">Sweep axis</text>
+        <text x="15" y="135" fill="#52627a" font-size="12" transform="rotate(-90 15 135)">Amplitude / Phase</text>
+      </svg>
+    </div>
+
+    <h3>What is displayed</h3>
+    <ul>
+      <li>Amplitude response across completed scan points.</li>
+      <li>Phase response between masses when available.</li>
+      <li>Mass-driver phase when available.</li>
+      <li>Legend entries for reported masses or response points.</li>
+    </ul>
+
+    <div class="callout">
+      <b>Plot source:</b> The plot is generated from the desktop app status payload. If the desktop app has not reported a completed transmission spectrum, the website will continue to show scan controls and status instead of the final plot.
+    </div>
+  </section>
+
+  <section class="page" id="troubleshooting">
+    <div class="doc-header">
+      <span>9. Troubleshooting</span>
+      <span>Measurement WorkFlow Remote</span>
+    </div>
+    <h2>Common Problems</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Message or behavior</th>
+          <th>Likely cause</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Invalid login</td>
+          <td>The Lab ID or website password is not correct.</td>
+          <td>Confirm the current password with the lab administrator, then clear saved login and sign in again.</td>
+        </tr>
+        <tr>
+          <td>Failed to fetch</td>
+          <td>Wrong website address, network issue, or the website service is temporarily unavailable.</td>
+          <td>Confirm the website address, check internet connection, and try refreshing the page.</td>
+        </tr>
+        <tr>
+          <td>Desktop app is not connected</td>
+          <td>The desktop app is closed or not currently accepting website commands.</td>
+          <td>Open Measurement WorkFlow on the lab PC and confirm the website connection is enabled.</td>
+        </tr>
+        <tr>
+          <td>Detect command sent, but resources do not update</td>
+          <td>Instrument is not visible to VISA, app is busy, or status has not refreshed yet.</td>
+          <td>Wait for detection refresh, press Refresh, and verify resources locally on the lab PC.</td>
+        </tr>
+        <tr>
+          <td>Website session appears lost during a long experiment</td>
+          <td>Phone browser slept or the tab was suspended.</td>
+          <td>Reopen the website, log in if needed, and refresh status. The desktop scan can continue independently.</td>
+        </tr>
+        <tr>
+          <td>Transmission spectrum does not appear</td>
+          <td>The desktop app has not completed or has not reported spectrum data.</td>
+          <td>Check the desktop app scan status and confirm completed metrics exist.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="page" id="reference">
+    <div class="doc-header">
+      <span>10. Field Reference</span>
+      <span>Measurement WorkFlow Remote</span>
+    </div>
+    <h2>Quick Reference</h2>
+
+    <h3>Default folders and labels</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Default or label</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Default data root</td>
+          <td><code>D:\Polytec_Software_Code\Data</code></td>
+        </tr>
+        <tr>
+          <td>Function generator</td>
+          <td>B&amp;K Precision 4055B</td>
+        </tr>
+        <tr>
+          <td>Oscilloscopes</td>
+          <td>Tektronix MDO 3 Series and Tektronix MDO3024</td>
+        </tr>
+        <tr>
+          <td>LDV</td>
+          <td>PSV-680F QTec Laser Doppler Vibrometer</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Command behavior</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Website command</th>
+          <th>Includes scan preset?</th>
+          <th>Desktop behavior</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Apply</td>
+          <td>Yes</td>
+          <td>Applies current website inputs to the desktop app.</td>
+        </tr>
+        <tr>
+          <td>Apply &amp; Run</td>
+          <td>Yes</td>
+          <td>Applies inputs and requests scan start.</td>
+        </tr>
+        <tr>
+          <td>Detect commands</td>
+          <td>Yes</td>
+          <td>Uses current workflow and asks desktop app to detect instruments.</td>
+        </tr>
+        <tr>
+          <td>Pause, Stop, Outputs Off, Reset</td>
+          <td>No</td>
+          <td>Sends direct control command to desktop app.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="footer-note">
+      Measurement WorkFlow Remote is intended to support laboratory measurement setup and monitoring. The desktop Measurement WorkFlow application remains responsible for hardware communication, scan execution, data saving, and final analysis.
+    </div>
+  </section>
+</body>
+</html>

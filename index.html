@@ -453,6 +453,29 @@
       padding:0;
     }
 
+    .spectrumNav {
+      position:fixed;
+      top:14px;
+      right:14px;
+      z-index:40;
+      display:flex;
+      gap:8px;
+      padding:8px;
+      border:1px solid rgba(148,163,184,.42);
+      border-radius:16px;
+      background:rgba(248,251,255,.92);
+      box-shadow:0 14px 32px rgba(15,23,42,.12);
+      backdrop-filter:blur(14px);
+    }
+
+    .spectrumNav button {
+      min-height:34px;
+      padding:8px 12px;
+      margin:0;
+      border-radius:11px;
+      font-size:12px;
+    }
+
     .spectrumFigure {
       width:100%;
       height:100vh;
@@ -476,6 +499,13 @@
       .content { padding:12px; }
       .card { border-radius:14px; margin:11px 0; }
       .choice { min-height:84px; }
+      .spectrumNav {
+        top:auto;
+        right:10px;
+        bottom:10px;
+        left:10px;
+        justify-content:center;
+      }
     }
   </style>
 </head>
@@ -548,7 +578,8 @@
       selectedFgIndex: 0,
       statusRefreshId: 0,
       runMonitorId: 0,
-      runMonitorAttempts: 0
+      runMonitorAttempts: 0,
+      dismissedSpectrumSignature: ""
     };
 
     function esc(value) {
@@ -651,6 +682,7 @@
       state.relayStatus = payload.status || null;
       state.desktopOnline = payload.status?.desktopOnline === true;
       state.appState = state.desktopOnline ? (payload.status?.appState || null) : null;
+      if (state.appState?.running === true) state.dismissedSpectrumSignature = "";
       const remotePreset = normalizePreset(
         state.desktopOnline
           ? (payload.status?.appState?.preset || state.preset || defaultPreset())
@@ -825,6 +857,7 @@
       document.body.classList.toggle("plotOnly", !!completedSpectrum);
       if (completedSpectrum) {
         document.getElementById("app").innerHTML = renderSpectrumOnly(completedSpectrum);
+        wirePage();
         return;
       }
 
@@ -847,11 +880,31 @@
         return null;
       }
 
+      if (state.dismissedSpectrumSignature === spectrumSignature(spectrum)) {
+        return null;
+      }
+
       return spectrum;
     }
 
+    function spectrumSignature(spectrum) {
+      const scans = Array.isArray(spectrum?.scans) ? spectrum.scans : [];
+      const axis = spectrum?.axis || {};
+      const scanKey = scans
+        .map(scan => `${scan.name || ""}:${scan.x ?? ""}:${(scan.metrics || []).length}`)
+        .join("|");
+      return `${axis.label || ""}|${axis.low ?? ""}|${axis.high ?? ""}|${scanKey}`;
+    }
+
     function renderSpectrumOnly(spectrum) {
-      return `<section class="spectrumOnly">${renderTransmissionSpectrumSvg(spectrum)}</section>`;
+      return `<section class="spectrumOnly">
+        <div class="spectrumNav">
+          <button data-spectrum-home>Home</button>
+          <button data-spectrum-setup>Set Up Another Scan</button>
+          <button data-refresh>Refresh</button>
+        </div>
+        ${renderTransmissionSpectrumSvg(spectrum)}
+      </section>`;
     }
 
     function renderTransmissionSpectrumSvg(spectrum) {
@@ -1544,6 +1597,26 @@
         };
       });
 
+      document.querySelectorAll("[data-spectrum-home]").forEach(button => {
+        button.onclick = () => {
+          state.dismissedSpectrumSignature = spectrumSignature(state.appState?.transmissionSpectrum);
+          state.view = "home";
+          state.dirty = false;
+          localStorage.setItem(viewKey, state.view);
+          render();
+        };
+      });
+
+      document.querySelectorAll("[data-spectrum-setup]").forEach(button => {
+        button.onclick = () => {
+          state.dismissedSpectrumSignature = spectrumSignature(state.appState?.transmissionSpectrum);
+          state.view = "setup";
+          state.dirty = false;
+          localStorage.setItem(viewKey, state.view);
+          render();
+        };
+      });
+
       document.querySelectorAll("[data-start-equipment]").forEach(button => {
         button.onclick = async () => {
           state.preset = normalizePreset(state.preset || defaultPreset());
@@ -1643,6 +1716,7 @@
         });
         setNotice(friendlyMessage || result.message || "Command queued.", "ok");
         if (type === "run") {
+          state.dismissedSpectrumSignature = "";
           startRunMonitor();
         }
         if (options.refresh !== false) {
