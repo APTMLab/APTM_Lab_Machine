@@ -913,10 +913,22 @@
       const massIndexes = [...new Set(scans.flatMap(scan => (scan.metrics || []).map(metric => Number(metric.massIndex))))]
         .filter(Number.isFinite)
         .sort((a,b) => a - b);
+      const phasePlotValue = value => {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) return NaN;
+        return Math.abs(Math.atan2(Math.sin(numeric), Math.cos(numeric)));
+      };
       const panels = [
-        { key:"amplitude", title:"Amplitude Response", yLabel:"Max Amp", value:metric => metric.amplitude == null ? NaN : Number(metric.amplitude) },
-        { key:"phaseBetween", title:"Phase Response between Masses", yLabel:"Phase [rad]", value:metric => metric.phaseFromMass1Radians == null ? NaN : Number(metric.phaseFromMass1Radians) },
-        { key:"phaseDriver", title:"Phase Response of Mass and Driver", yLabel:"Phase [rad]", value:metric => metric.massDriverPhaseRadians == null ? NaN : Number(metric.massDriverPhaseRadians) }
+        { key:"amplitude", title:"Amplitude Response", yLabel:"Max Amp", value:(metric) => metric.amplitude == null ? NaN : Number(metric.amplitude) },
+        {
+          key:"phaseBetween",
+          title:"Phase Response between Masses",
+          yLabel:"Phase [rad]",
+          value:(metric, metricCount) => metric.phaseFromMass1Radians == null
+            ? (metricCount <= 1 ? phasePlotValue(metric.massDriverPhaseRadians) : NaN)
+            : phasePlotValue(metric.phaseFromMass1Radians)
+        },
+        { key:"phaseDriver", title:"Phase Response of Mass and Driver", yLabel:"Phase [rad]", value:(metric) => metric.massDriverPhaseRadians == null ? NaN : phasePlotValue(metric.massDriverPhaseRadians) }
       ];
       const width = 1200;
       const height = 720;
@@ -942,7 +954,10 @@
       panels.forEach((panel, panelIndex) => {
         const yTop = top + panelIndex * (panelHeight + gap);
         const yBottom = yTop + panelHeight;
-        const values = scans.flatMap(scan => (scan.metrics || []).map(panel.value)).filter(Number.isFinite);
+        const values = scans.flatMap(scan => {
+          const metrics = scan.metrics || [];
+          return metrics.map(metric => panel.value(metric, metrics.length));
+        }).filter(Number.isFinite);
         const yRange = panel.key === "phaseBetween" || panel.key === "phaseDriver"
           ? { min:0, max:Math.PI }
           : paddedRange(values.length ? values : [0, 1]);
@@ -967,7 +982,7 @@
           scans.forEach(scan => {
             const metric = (scan.metrics || []).find(item => Number(item.massIndex) === massIndex);
             if (!metric) return;
-            const y = panel.value(metric);
+            const y = panel.value(metric, scan.metrics?.length || 0);
             const x = Number(scan.x);
             if (!Number.isFinite(x) || !Number.isFinite(y)) return;
             points.push({ x:mapX(x), y:mapY(y) });
